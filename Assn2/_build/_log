@@ -1,0 +1,23 @@
+### Starting build.
+# Target: a0.mli.depends, tags: { extension:mli, file:a0.mli, ocaml, ocamldep, quiet }
+ocamldep.opt -modules a0.mli > a0.mli.depends # cached
+# Target: a0.cmi, tags: { byte, compile, extension:mli, file:a0.mli, interf, ocaml, quiet }
+ocamlc.opt -c -o a0.cmi a0.mli # cached
+# Target: a0.ml.depends, tags: { extension:ml, file:a0.ml, ocaml, ocamldep, quiet }
+ocamldep.opt -modules a0.ml > a0.ml.depends # cached
+# Target: a0.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:a0.cmo, file:a0.ml, implem, ocaml, quiet }
+ocamlc.opt -c -o a0.cmo a0.ml # cached
+# Target: a1.mli.depends, tags: { extension:mli, file:a1.mli, ocaml, ocamldep, quiet }
+ocamldep.opt -modules a1.mli > a1.mli.depends
+# Target: a1.cmi, tags: { byte, compile, extension:mli, file:a1.mli, interf, ocaml, quiet }
+ocamlc.opt -c -o a1.cmi a1.mli
+# Target: a1.ml.depends, tags: { extension:ml, file:a1.ml, ocaml, ocamldep, quiet }
+ocamldep.opt -modules a1.ml > a1.ml.depends # cached
+# Target: a1.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:a1.cmo, file:a1.ml, implem, ocaml, quiet }
+ocamlc.opt -c -o a1.cmo a1.ml
++ ocamlc.opt -c -o a1.cmo a1.ml
+File "a1.ml", line 44, characters 4-5:
+Warning 11: this match case is unused.
+File "a1.ml", line 56, characters 4-5:
+Warning 11: this match case is unused.
+# Compilation successful.
