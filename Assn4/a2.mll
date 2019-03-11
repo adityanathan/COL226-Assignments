@@ -29,33 +29,34 @@
 
 
    rule read = parse
-
-   |    "abs"                   {ABS::read lexbuf}
-   |    '+'                     {PLUS::read lexbuf}
-   |    '-'                     {MINUS::read lexbuf}
-   |    integer_constant as x   {(remove_sign x)::read lexbuf }
-   |    '*'                     {MUL::read lexbuf}
-   |    "div"                   {DIV::read lexbuf}
-   |    "mod"                   {MOD::read lexbuf}
-   |    '^'                     {EXP::read lexbuf}
-   |    '('                     {LP::read lexbuf}
-   |    ')'                     {RP::read lexbuf}
-   |    'T'                     {TRUE::read lexbuf}
-   |    'F'                     {FALSE::read lexbuf}
-   |    "not"                   {NOT::read lexbuf}
-   |    "/\\"                   {AND::read lexbuf}
-   |    "\\/"                   {OR::read lexbuf}
-   |    '='                     {EQ::read lexbuf}
-   |    '<'                     {LTA::read lexbuf}
-   |    '>'                     {GTA::read lexbuf}
-   |    ">="                    {GEQ::read lexbuf}
-   |    "<="                    {LEQ::read lexbuf}
-   |    "if"                    {IF::read lexbuf}
-   |    "then"                  {THEN::read lexbuf}
-   |    "else"                  {ELSE::read lexbuf}
-   |    identifiers as x        {ID (x):: read lexbuf}
-   |    "def"                   {DEF::read lexbuf}
-   |    ';'                     {DELIMITER::read lexbuf}
+   |    ','                     {COMMA}
+   |    '~'                     {TILDA}
+   |    "abs"                   {ABS}
+   |    '+'                     {PLUS}
+   |    '-'                     {MINUS}
+   |    integer_constant as x   {INT (remove_sign x)}
+   |    '*'                     {MUL}
+   |    "div"                   {DIV}
+   |    "mod"                   {MOD}
+   |    '^'                     {EXP}
+   |    '('                     {LP}
+   |    ')'                     {RP}
+   |    'T'                     {BOOL (true)}
+   |    'F'                     {BOOL (false)}
+   |    "not"                   {NOT}
+   |    "/\\"                   {AND}
+   |    "\\/"                   {OR}
+   |    '='                     {EQ}
+   |    '<'                     {LTA}
+   |    '>'                     {GTA}
+   |    ">="                    {GEQ}
+   |    "<="                    {LEQ}
+   |    "if"                    {IF}
+   |    "then"                  {THEN}
+   |    "else"                  {ELSE}
+   |    "fi"                    {FI}
+   |    identifiers as x        {ID (x)}
+   |    ';'                     {DELIMITER}
    |    eof                     {EOF}
    |    whitespace              {read lexbuf}
    |    _                       {raise (InvalidToken ("Unexpected character: "^Lexing.lexeme lexbuf))}
