@@ -17,19 +17,40 @@ The language should contain the following types of expressions:  integers and bo
 */
 
 main:
-    sub_expr DELIMITER                         { $1 }
-    | sub_expr                                 { $1 }
+    or_expr DELIMITER                         { $1 }
+    | or_expr                                 { $1 }
     | EOF                                       { Done }
 ;
 
-/* ifte_expr:
-    IF sub_expr THEN sub_expr ELSE sub_expr FI  {IfThenElse($2,$4,$6)}
-    | sub_expr                                  {$1} */
+or_expr:
+    or_expr OR and_expr                         {Disjunction ($1, $3)}
+    | and_expr                                  {$1}
+;
+
+and_expr:
+    and_expr AND not_expr                        {Conjunction ($1, $3)}
+    | not_expr                                   {$1}
+;
+
+not_expr:
+    NOT comparison_expr                              {Not ($2)}
+    | comparison_expr                                {$1}
+;
+
+comparison_expr:
+    comparison_expr GTA EQ sub_expr             {GreaterTE ($1, $4)}
+    | comparison_expr LTA EQ sub_expr           {LessTE ($1, $4)}
+    | comparison_expr GTA sub_expr              {GreaterT ($1, $3)}
+    | comparison_expr LTA sub_expr              {LessT ($1, $3)}
+    | comparison_expr EQ sub_expr               {Equals ($1, $3)}
+    | sub_expr                                  {$1}
+;
 
 sub_expr:
     sub_expr MINUS add_expr                     {Sub ($1, $3)}
     | add_expr                                  {$1}
 ;
+
 add_expr:
     add_expr PLUS mult_expr                     {Add ($1, $3)}
     | mult_expr                                 {$1}
@@ -53,34 +74,18 @@ exponent_expr:
 abs_expr:
     ABS paren_expr                         {Abs ($2)}
     | paren_expr                           {$1}
-
-/* comparison_expr:
-    comparison_expr GTA EQ and_expr             {GreaterTE ($1, $4)}
-    | comparison_expr LTA EQ and_expr           {LessTE ($1, $4)}
-    | comparison_expr GTA and_expr              {GreaterT ($1, $3)}
-    | comparison_expr LTA and_expr              {LessT ($1, $3)}
-    | comparison_expr EQ and_expr               {Equals ($1, $3)}
-    | and_expr                                  {$1}
 ;
 
-and_expr:
-    and_expr AND or_expr                        {Conjunction ($1, $3)}
-    | or_expr                                   {$1}
-;
-
-or_expr:
-    or_expr OR not_expr                         {Disjunction ($1, $3)}
-    | not_expr                                  {$1}
-;
-
-not_expr:
-    NOT paren_expr                              {Not ($2)}
-    | paren_expr                                {$1}
-; */
 paren_expr:
-    | LP sub_expr RP                         {InParen($2)}
-    | constant                                  {$1}
+    LP or_expr RP                         {InParen($2)}
+    | ifte_expr                                  {$1}
 ;
+
+ifte_expr:
+  IF or_expr THEN or_expr ELSE or_expr FI  {IfThenElse($2,$4,$6)}
+  | constant                                  {$1}
+;
+
 constant:
     ID                                          {Var ($1)}
     | INT                                       {N ($1)}

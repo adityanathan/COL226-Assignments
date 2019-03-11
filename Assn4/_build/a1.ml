@@ -238,7 +238,7 @@ let rec find_paren list accumulator =
 
 let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
     =
-  try
+  (* try *)
     match op with
     | DONE :: e-> raise Empty_input
     | VAR (x : string) :: e ->
@@ -388,11 +388,13 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
         if List.length acc = a + 1 then List.hd acc else raise Ill_Formed_Stack
     (* Assuming that acc need not always be empty *)
     (* if List.length acc = 1 then List.hd acc else raise Invalid_Expression *)
-  with
+
+
+  (* with
   | Failure _ -> raise Ill_Formed_Stack
   | Drop_number_exceeds_list -> raise Ill_Formed_Stack
   | Ill_Formed_Stack -> raise Ill_Formed_Stack
-  | Invalid_type -> raise Invalid_type
+  | Invalid_type -> raise Invalid_type *)
 
 let stackmc (acc : answer list) rho (op : opcode list) =
   stackmc_prototype acc op (List.length acc) rho

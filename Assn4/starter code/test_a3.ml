@@ -37,3 +37,4 @@ let rho s = match s with
 let _ = (parser "5" rho);;
 
 let result x = (parser x rho);;
+let parse_output x = A3.main A2.read (Lexing.from_string x);;

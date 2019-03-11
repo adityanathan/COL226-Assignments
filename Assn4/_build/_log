@@ -4,9 +4,14 @@ ocamldep.opt -modules a0.ml > a0.ml.depends # cached
 # Target: a0.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:a0.cmo, file:a0.ml, implem, ocaml, quiet }
 ocamlc.opt -c -o a0.cmo a0.ml # cached
 # Target: a1.ml.depends, tags: { extension:ml, file:a1.ml, ocaml, ocamldep, quiet }
-ocamldep.opt -modules a1.ml > a1.ml.depends # cached
+ocamldep.opt -modules a1.ml > a1.ml.depends
 # Target: a1.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:a1.cmo, file:a1.ml, implem, ocaml, quiet }
-ocamlc.opt -c -o a1.cmo a1.ml # cached
+ocamlc.opt -c -o a1.cmo a1.ml
++ ocamlc.opt -c -o a1.cmo a1.ml
+File "a1.ml", line 242, characters 4-5156:
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a case that is not matched:
+(TUPLE _|PROJ (_, _))::_
 # Target: a2.mll, tags: { extension:mll, file:a2.mll, lexer, ocaml, ocamllex, quiet }
 ocamllex.opt -q a2.mll # cached
 # Target: a2.ml.depends, tags: { extension:ml, file:a2.ml, ocaml, ocamldep, quiet }

@@ -70,7 +70,8 @@ type opcode =
   | LTE
   | GT
   | LT
-  | PAREN
+  | LPAREN
+  | RPAREN
   | CONJ
   | DISJ
   | NOT
@@ -198,7 +199,7 @@ let rec compile exp =
   | LessT (e1, e2) -> compile e1 @ compile e2 @ [LT]
   | Conjunction (e1, e2) -> compile e1 @ compile e2 @ [CONJ]
   | Disjunction (e1, e2) -> compile e1 @ compile e2 @ [DISJ]
-  | InParen e1 -> [PAREN] @ compile e1 @ [PAREN]
+  | InParen e1 -> [LPAREN] @ compile e1 @ [RPAREN]
   | Add (e1, e2) -> compile e1 @ compile e2 @ [PLUS]
   | Sub (e1, e2) -> compile e1 @ compile e2 @ [MINUS]
   | Mult (e1, e2) -> compile e1 @ compile e2 @ [MULT]
@@ -232,13 +233,13 @@ exception Ill_Formed_Stack
 
 let rec find_paren list accumulator =
   match list with
-  | PAREN :: e -> accumulator
+  | RPAREN :: e -> accumulator
   | a :: b -> find_paren b accumulator @ [a]
   | [] -> raise Ill_Formed_Stack
 
 let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
     =
-  try
+  (* try *)
     match op with
     | DONE :: e-> raise Empty_input
     | VAR (x : string) :: e ->
@@ -349,7 +350,7 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
             :: drop acc 2 )
             e a rho
         else raise Ill_Formed_Stack
-    | PAREN :: e ->
+    | LPAREN :: e ->
         let temp = stackmc_prototype [] (find_paren e []) 0 rho in
         stackmc_prototype (temp :: acc)
           (drop e (List.length (find_paren e []) + 1))
@@ -388,11 +389,13 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
         if List.length acc = a + 1 then List.hd acc else raise Ill_Formed_Stack
     (* Assuming that acc need not always be empty *)
     (* if List.length acc = 1 then List.hd acc else raise Invalid_Expression *)
-  with
+
+
+  (* with
   | Failure _ -> raise Ill_Formed_Stack
   | Drop_number_exceeds_list -> raise Ill_Formed_Stack
   | Ill_Formed_Stack -> raise Ill_Formed_Stack
-  | Invalid_type -> raise Invalid_type
+  | Invalid_type -> raise Invalid_type *)
 
 let stackmc (acc : answer list) rho (op : opcode list) =
   stackmc_prototype acc op (List.length acc) rho
