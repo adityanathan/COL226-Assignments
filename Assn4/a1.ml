@@ -33,7 +33,7 @@ type exptree =
   (* a conditional expression *)
   | Tuple of int * exptree list
   (* creating n-tuples (n >= 0) *)
-  | Project of (int * int) * exptree list
+  | Project of (int * int) * exptree
   (* projecting the i-th component of an expression (which evaluates to an n-tuple, and 1 <= i <= n) *)
   | Add of exptree * exptree
   (* binary operators on integers *)
@@ -83,7 +83,9 @@ type opcode =
 (* type special_ret_type = Int of int | Bool of bool *)
 type answer = Num of bigint | Bool of bool | Tup of int * answer list
 
-type integer_answer = Inum of int | Bool of bool | Tup of int * answer list
+type value = NumVal of int | BoolVal of bool | TupVal of int * value list
+
+(* type integer_answer = Inum of int | Bool of bool | Tup of int * answer list *)
 
 exception Zero_exp_zero_error
 
@@ -102,97 +104,111 @@ let rec eval_exponent acc x y =
 
 exception Illegal_Tuple
 
+exception Projection_Index_Out_of_bounds
+
 let rec eval_tuple acc list rho =
-  match list with [] -> [] | hd :: tl -> eval_tuple acc @ [eval hd rho] rho
-
-(* let rec eval_projection n list rho =
   match list with
-  | s *)
+  | [] -> acc
+  | hd :: tl -> eval_tuple (acc @ [eval hd rho]) tl rho
 
-let rec eval exp rho =
+and eval_projection a b list rho =
+  if b = List.length list && a <= b && a >= 1 then
+    match list with
+    | [] -> raise Projection_Index_Out_of_bounds
+    | hd :: tl ->
+        if a = 1 then eval hd rho else eval_projection (a - 1) (b - 1) tl rho
+  else if a < 1 || a > b then raise Projection_Index_Out_of_bounds
+  else raise Illegal_Tuple
+
+and eval exp rho =
   match exp with
   | Done -> raise Empty_input
-  | N number -> Inum number
-  | B value -> Bool value
+  | N number -> NumVal number
+  | B value -> BoolVal value
   | Var var_name -> rho var_name
   | Conjunction (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Bool a, Bool b -> Bool (a && b)
+    | BoolVal a, BoolVal b -> BoolVal (a && b)
     | _, _ -> raise Invalid_Expression )
   | Disjunction (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Bool a, Bool b -> Bool (a || b)
+    | BoolVal a, BoolVal b -> BoolVal (a || b)
     | _, _ -> raise Invalid_Expression )
   | Equals (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Bool a, Bool b -> Bool (a = b)
+    | BoolVal a, BoolVal b -> BoolVal (a = b)
     | _, _ -> raise Invalid_Expression )
   | GreaterTE (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Bool a, Bool b -> Bool (a >= b)
+    | BoolVal a, BoolVal b -> BoolVal (a >= b)
     | _, _ -> raise Invalid_Expression )
   | LessTE (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Bool a, Bool b -> Bool (a <= b)
+    | BoolVal a, BoolVal b -> BoolVal (a <= b)
     | _, _ -> raise Invalid_Expression )
   | GreaterT (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Bool a, Bool b -> Bool (a > b)
+    | BoolVal a, BoolVal b -> BoolVal (a > b)
     | _, _ -> raise Invalid_Expression )
   | LessT (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Bool a, Bool b -> Bool (a < b)
+    | BoolVal a, BoolVal b -> BoolVal (a < b)
     | _, _ -> raise Invalid_Expression )
   | InParen e1 -> eval e1 rho
   | IfThenElse (e1, e2, e3) -> (
     match eval e1 rho with
-    | Bool a -> if a = true then eval e2 rho else eval e3 rho
+    | BoolVal a -> if a = true then eval e2 rho else eval e3 rho
     | _ -> raise Invalid_Expression )
-  (* | Tuple (e1, e2) ->
-     | Project (e1, e2) ->  *)
+  | Tuple (e1, e2) ->
+      if e1 = List.length e2 then TupVal (e1, eval_tuple [] e2 rho)
+      else raise Illegal_Tuple
+  | Project ((e1, e2), e3) -> (
+    match e3 with
+    | Tuple (a, b) -> eval_projection e1 e2 b rho
+    | _ -> raise Illegal_Tuple )
   | Add (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Inum a, Inum b -> Inum (a + b)
+    | NumVal a, NumVal b -> NumVal (a + b)
     | _, _ -> raise Invalid_Expression )
   | Sub (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Inum a, Inum b -> Inum (a - b)
+    | NumVal a, NumVal b -> NumVal (a - b)
     | _, _ -> raise Invalid_Expression )
   | Mult (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Inum a, Inum b -> Inum (a * b)
+    | NumVal a, NumVal b -> NumVal (a * b)
     | _, _ -> raise Invalid_Expression )
   | Div (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Inum a, Inum b ->
-        if a < 0 && b > 0 && b * (a / b) <> a then Inum ((a / b) - 1)
-        else Inum (a / b)
+    | NumVal a, NumVal b ->
+        if a < 0 && b > 0 && b * (a / b) <> a then NumVal ((a / b) - 1)
+        else NumVal (a / b)
     (* Done to make sure Euclidean Division is satisfied *)
     (* To make remainder always greater than 0 *)
     | _, _ -> raise Invalid_Expression )
   | Rem (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Inum a, Inum b ->
-        if a < 0 && b > 0 && b * (a / b) <> a then Inum ((a mod b) + b)
-        else Inum (a mod b)
+    | NumVal a, NumVal b ->
+        if a < 0 && b > 0 && b * (a / b) <> a then NumVal ((a mod b) + b)
+        else NumVal (a mod b)
     (* Done to make sure Euclidean Division is satisfied *)
     (* To make remainder always greater than 0 *)
     | _, _ -> raise Invalid_Expression )
   | Exp (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | Inum a, Inum b -> Inum (eval_exponent 1 a b)
+    | NumVal a, NumVal b -> NumVal (eval_exponent 1 a b)
     | _, _ -> raise Invalid_Expression )
   | Negative e1 -> (
     match eval e1 rho with
-    | Inum a -> Inum (-1 * a)
+    | NumVal a -> NumVal (-1 * a)
     | _ -> raise Invalid_Expression )
   | Not e1 -> (
     match eval e1 rho with
-    | Bool a -> Bool (not a)
+    | BoolVal a -> BoolVal (not a)
     | _ -> raise Invalid_Expression )
   | Abs e1 -> (
     match eval e1 rho with
-    | Inum a -> if a < 0 then Inum (-1 * a) else Inum a
+    | NumVal a -> if a < 0 then NumVal (-1 * a) else NumVal a
     | _ -> raise Invalid_Expression )
   | _ -> raise Invalid_Expression
 

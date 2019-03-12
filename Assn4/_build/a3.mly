@@ -3,7 +3,7 @@
 %}
 
 /* Tokens are defined below.  */
-%token COMMA TILDA LP RP IF THEN ELSE FI DELIMITER EOF EQ GTA LTA ABS EXP DIV MOD MUL PLUS MINUS AND OR NOT
+%token COMMA TILDA LP RP IF THEN ELSE FI DELIMITER EOF EQ GT LT ABS EXP DIV REM TIMES PLUS MINUS DISJ CONJ NOT PROJ
 %token <int> INT
 %token <string> ID
 %token <bool> BOOL
@@ -23,12 +23,12 @@ main:
 ;
 
 or_expr:
-    or_expr OR and_expr                         {Disjunction ($1, $3)}
+    or_expr DISJ and_expr                         {Disjunction ($1, $3)}
     | and_expr                                  {$1}
 ;
 
 and_expr:
-    and_expr AND not_expr                        {Conjunction ($1, $3)}
+    and_expr CONJ not_expr                        {Conjunction ($1, $3)}
     | not_expr                                   {$1}
 ;
 
@@ -38,10 +38,10 @@ not_expr:
 ;
 
 comparison_expr:
-    comparison_expr GTA EQ sub_expr             {GreaterTE ($1, $4)}
-    | comparison_expr LTA EQ sub_expr           {LessTE ($1, $4)}
-    | comparison_expr GTA sub_expr              {GreaterT ($1, $3)}
-    | comparison_expr LTA sub_expr              {LessT ($1, $3)}
+    comparison_expr GT EQ sub_expr             {GreaterTE ($1, $4)}
+    | comparison_expr LT EQ sub_expr           {LessTE ($1, $4)}
+    | comparison_expr GT sub_expr              {GreaterT ($1, $3)}
+    | comparison_expr LT sub_expr              {LessT ($1, $3)}
     | comparison_expr EQ sub_expr               {Equals ($1, $3)}
     | sub_expr                                  {$1}
 ;
@@ -56,11 +56,11 @@ add_expr:
     | mult_expr                                 {$1}
 ;
 mult_expr:
-    mult_expr MUL mod_expr                      {Mult ($1, $3)}
+    mult_expr TIMES mod_expr                      {Mult ($1, $3)}
     | mod_expr                                  {$1}
 ;
 mod_expr:
-    mod_expr MOD div_expr                       {Rem ($1, $3)}
+    mod_expr REM div_expr                       {Rem ($1, $3)}
     | div_expr                                  {$1}
 ;
 div_expr:
@@ -72,9 +72,13 @@ exponent_expr:
     | abs_expr                                  {$1}
 ;
 abs_expr:
-    ABS paren_expr                         {Abs ($2)}
-    | paren_expr                           {$1}
+    ABS unary_minus_expr                         {Abs ($2)}
+    | unary_minus_expr                           {$1}
 ;
+
+unary_minus_expr:
+    TILDA paren_expr                              {Negative($2)}
+    | paren_expr                                  {$1}
 
 paren_expr:
     LP or_expr RP                         {InParen($2)}

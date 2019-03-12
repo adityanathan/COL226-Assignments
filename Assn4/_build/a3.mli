@@ -10,18 +10,19 @@ type token =
   | DELIMITER
   | EOF
   | EQ
-  | GTA
-  | LTA
+  | GT
+  | LT
   | ABS
   | EXP
   | DIV
-  | MOD
-  | MUL
+  | REM
+  | TIMES
   | PLUS
   | MINUS
-  | AND
-  | OR
+  | DISJ
+  | CONJ
   | NOT
+  | PROJ
   | INT of (int)
   | ID of (string)
   | BOOL of (bool)

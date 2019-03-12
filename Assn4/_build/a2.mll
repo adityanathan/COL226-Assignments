@@ -35,20 +35,20 @@
    |    '+'                     {PLUS}
    |    '-'                     {MINUS}
    |    integer_constant as x   {remove_sign x}
-   |    '*'                     {MUL}
+   |    '*'                     {TIMES}
    |    "div"                   {DIV}
-   |    "mod"                   {MOD}
+   |    "mod"                   {REM}
    |    '^'                     {EXP}
    |    '('                     {LP}
    |    ')'                     {RP}
    |    'T'                     {BOOL (true)}
    |    'F'                     {BOOL (false)}
    |    "not"                   {NOT}
-   |    "/\\"                   {AND}
-   |    "\\/"                   {OR}
+   |    "/\\"                   {CONJ}
+   |    "\\/"                   {DISJ}
    |    '='                     {EQ}
-   |    '<'                     {LTA}
-   |    '>'                     {GTA}
+   |    '<'                     {LT}
+   |    '>'                     {GT}
    |    "if"                    {IF}
    |    "then"                  {THEN}
    |    "else"                  {ELSE}
