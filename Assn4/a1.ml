@@ -1,6 +1,7 @@
 open A0
 
 exception Invalid_Expression
+
 exception Empty_input
 
 (* abstract syntax  *)
@@ -98,6 +99,15 @@ let rec eval_exponent acc x y =
   | 0 -> if x = 0 then raise Zero_exp_zero_error else 1
   | 1 -> acc * x
   | power -> eval_exponent (acc * x) x (y - 1)
+
+exception Illegal_Tuple
+
+let rec eval_tuple acc list rho =
+  match list with [] -> [] | hd :: tl -> eval_tuple acc @ [eval hd rho] rho
+
+(* let rec eval_projection n list rho =
+  match list with
+  | s *)
 
 let rec eval exp rho =
   match exp with
@@ -225,9 +235,11 @@ let rec drop l n =
 
 (* type answer = BInt of bigint | Bool of bool *)
 
-let get_int (a:answer) = match a with Num e1 -> e1 | _ -> raise Invalid_type
+let get_int (a : answer) =
+  match a with Num e1 -> e1 | _ -> raise Invalid_type
 
-let get_bool (a:answer) = match a with Bool e1 -> e1 | _ -> raise Invalid_type
+let get_bool (a : answer) =
+  match a with Bool e1 -> e1 | _ -> raise Invalid_type
 
 exception Ill_Formed_Stack
 
@@ -240,158 +252,146 @@ let rec find_paren list accumulator =
 let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
     =
   (* try *)
-    match op with
-    | DONE :: e-> raise Empty_input
-    | VAR (x : string) :: e ->
-        stackmc_prototype (rho x:: acc) e a rho
-    | NCONST (num : bigint) :: e -> stackmc_prototype (Num num :: acc) e a rho
-    | BCONST (value : bool) :: e ->
-        stackmc_prototype (Bool value :: acc) e a rho
-    | PLUS :: e ->
-        if List.length acc >= a + 2 then
+  match op with
+  | DONE :: e -> raise Empty_input
+  | VAR (x : string) :: e -> stackmc_prototype (rho x :: acc) e a rho
+  | NCONST (num : bigint) :: e -> stackmc_prototype (Num num :: acc) e a rho
+  | BCONST (value : bool) :: e -> stackmc_prototype (Bool value :: acc) e a rho
+  | PLUS :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Num (add (get_int (List.hd acc)) (get_int (List.hd (List.tl acc))))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | MULT :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Num (mult (get_int (List.hd acc)) (get_int (List.hd (List.tl acc))))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | MINUS :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Num (sub (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | EXP :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Num
+              (eval_b_exponent
+                 (NonNeg, [1])
+                 (get_int (List.hd (List.tl acc)))
+                 (get_int (List.hd acc)))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | DIV :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Num (div (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | REM :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Num (rem (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | ABS :: e ->
+      if List.length acc >= a + 1 then
+        stackmc_prototype
+          (Num (abs (get_int (List.hd acc))) :: drop acc 1)
+          e a rho
+      else raise Ill_Formed_Stack
+  | UNARYMINUS :: e ->
+      if List.length acc >= a + 1 then
+        stackmc_prototype
+          (Num (minus (get_int (List.hd acc))) :: drop acc 1)
+          e a rho
+      else raise Ill_Formed_Stack
+  | EQS :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Bool (eq (get_int (List.hd acc)) (get_int (List.hd (List.tl acc))))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | GTE :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Bool (geq (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | LTE :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Bool (leq (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | GT :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Bool (gt (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | LT :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Bool (lt (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | LPAREN :: e ->
+      let temp = stackmc_prototype [] (find_paren e []) 0 rho in
+      stackmc_prototype (temp :: acc)
+        (drop e (List.length (find_paren e []) + 1))
+        a rho
+  | CONJ :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Bool (get_bool (List.hd (List.tl acc)) && get_bool (List.hd acc))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | DISJ :: e ->
+      if List.length acc >= a + 2 then
+        stackmc_prototype
+          ( Bool (get_bool (List.hd (List.tl acc)) || get_bool (List.hd acc))
+          :: drop acc 2 )
+          e a rho
+      else raise Ill_Formed_Stack
+  | NOT :: e ->
+      if List.length acc >= a + 1 then
+        stackmc_prototype
+          (Bool (not (get_bool (List.hd acc))) :: drop acc 1)
+          e a rho
+      else raise Ill_Formed_Stack
+  | IFTE :: e ->
+      if List.length acc >= a + 3 then
+        if get_bool (List.hd acc) = true then
+          stackmc_prototype (List.hd (List.tl acc) :: drop acc 3) e a rho
+        else
           stackmc_prototype
-            ( Num
-                (add (get_int (List.hd acc)) (get_int (List.hd (List.tl acc))))
-            :: drop acc 2 )
+            (List.hd (List.tl (List.tl acc)) :: drop acc 3)
             e a rho
-        else raise Ill_Formed_Stack
-    | MULT :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Num
-                (mult (get_int (List.hd acc)) (get_int (List.hd (List.tl acc))))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | MINUS :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Num
-                (sub (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | EXP :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Num
-                (eval_b_exponent
-                   (NonNeg, [1])
-                   (get_int (List.hd (List.tl acc)))
-                   (get_int (List.hd acc)))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | DIV :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Num
-                (div (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | REM :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Num
-                (rem (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | ABS :: e ->
-        if List.length acc >= a + 1 then
-          stackmc_prototype
-            (Num (abs (get_int (List.hd acc))) :: drop acc 1)
-            e a rho
-        else raise Ill_Formed_Stack
-    | UNARYMINUS :: e ->
-        if List.length acc >= a + 1 then
-          stackmc_prototype
-            (Num (minus (get_int (List.hd acc))) :: drop acc 1)
-            e a rho
-        else raise Ill_Formed_Stack
-    | EQS :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Bool
-                (eq (get_int (List.hd acc)) (get_int (List.hd (List.tl acc))))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | GTE :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Bool
-                (geq (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | LTE :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Bool
-                (leq (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | GT :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Bool
-                (gt (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | LT :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Bool
-                (lt (get_int (List.hd (List.tl acc))) (get_int (List.hd acc)))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | LPAREN :: e ->
-        let temp = stackmc_prototype [] (find_paren e []) 0 rho in
-        stackmc_prototype (temp :: acc)
-          (drop e (List.length (find_paren e []) + 1))
-          a rho
-    | CONJ :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Bool (get_bool (List.hd (List.tl acc)) && get_bool (List.hd acc))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | DISJ :: e ->
-        if List.length acc >= a + 2 then
-          stackmc_prototype
-            ( Bool (get_bool (List.hd (List.tl acc)) || get_bool (List.hd acc))
-            :: drop acc 2 )
-            e a rho
-        else raise Ill_Formed_Stack
-    | NOT :: e ->
-        if List.length acc >= a + 1 then
-          stackmc_prototype
-            (Bool (not (get_bool (List.hd acc))) :: drop acc 1)
-            e a rho
-        else raise Ill_Formed_Stack
-    | IFTE :: e ->
-        if List.length acc >= a + 3 then
-          if get_bool (List.hd acc) = true then
-            stackmc_prototype (List.hd (List.tl acc) :: drop acc 3) e a rho
-          else
-            stackmc_prototype
-              (List.hd (List.tl (List.tl acc)) :: drop acc 3)
-              e a rho
-        else raise Ill_Formed_Stack
-    (* Tuple and Projection pending *)
-    | [] ->
-        if List.length acc = a + 1 then List.hd acc else raise Ill_Formed_Stack
-    (* Assuming that acc need not always be empty *)
-    (* if List.length acc = 1 then List.hd acc else raise Invalid_Expression *)
+      else raise Ill_Formed_Stack
+  (* Tuple and Projection pending *)
+  | [] ->
+      if List.length acc = a + 1 then List.hd acc else raise Ill_Formed_Stack
 
+(* Assuming that acc need not always be empty *)
+(* if List.length acc = 1 then List.hd acc else raise Invalid_Expression *)
 
-  (* with
+(* with
   | Failure _ -> raise Ill_Formed_Stack
   | Drop_number_exceeds_list -> raise Ill_Formed_Stack
   | Ill_Formed_Stack -> raise Ill_Formed_Stack
