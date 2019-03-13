@@ -164,7 +164,8 @@ and eval exp rho =
       else raise Illegal_Tuple
   | Project ((e1, e2), e3) -> (
     match e3 with
-    | Tuple (a, b) -> eval_projection e1 e2 b rho
+    | Tuple (a, b) ->
+        if a = e2 then eval_projection e1 e2 b rho else raise Illegal_Tuple
     | _ -> raise Illegal_Tuple )
   | Add (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
@@ -212,7 +213,10 @@ and eval exp rho =
     | _ -> raise Invalid_Expression )
   | _ -> raise Invalid_Expression
 
-let rec compile exp =
+let rec compile_tuple x acc =
+  match x with [] -> acc | hd :: tl -> compile_tuple tl acc @ compile hd
+
+and compile exp =
   match exp with
   | Done -> [DONE]
   | Var x -> [VAR x]
@@ -236,11 +240,21 @@ let rec compile exp =
   | Not e1 -> compile e1 @ [NOT]
   | Exp (e1, e2) -> compile e1 @ compile e2 @ [EXP]
   | IfThenElse (e1, e2, e3) -> compile e3 @ compile e2 @ compile e1 @ [IFTE]
-  (* | Tuple (e1, e2) ->
-     | Project (e1, e2) ->  *)
+  | Tuple (e1, e2) ->
+      if List.length e2 = e1 then compile_tuple e2 @ [TUPLE e1]
+      else raise Illegal_Tuple
+  | Project ((e1, e2), e3) -> (
+    match e3 with
+    | Tuple (a, b) ->
+        if e2 = a && e1 <= e2 && e1 >= 1 then compile e3 @ [PROJ (e1, e2)]
+        else if e1 > e2 || e1 < 1 then raise Projection_Index_Out_of_bounds
+        else raise Illegal_Tuple
+    | _ -> raise Illegal_Tuple )
   | _ -> raise Invalid_Expression
 
 exception Drop_number_exceeds_list
+
+exception Ill_Formed_Stack
 
 exception Invalid_type
 
@@ -257,7 +271,15 @@ let get_int (a : answer) =
 let get_bool (a : answer) =
   match a with Bool e1 -> e1 | _ -> raise Invalid_type
 
-exception Ill_Formed_Stack
+let rec tuple_stack_calc stack n acc =
+  match n with
+  | 0 -> acc
+  | a -> tuple_stack_calc (List.tl stack) (a - 1) (List.hd stack) :: acc
+
+let rec proj_stack_calc tupl n =
+  match tupl with
+  | Tup(a,b) -> List.hd (drop b (n-1))
+  | _ -> raise Illegal_Tuple
 
 let rec find_paren list accumulator =
   match list with
@@ -400,7 +422,15 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
             (List.hd (List.tl (List.tl acc)) :: drop acc 3)
             e a rho
       else raise Ill_Formed_Stack
-  (* Tuple and Projection pending *)
+  | TUPLE e1 :: e ->
+      if List.length acc >= a + e1 then
+        stackmc_prototype
+          ((Tup (e1, tuple_stack_calc acc e1 [])) :: drop acc e1)
+          e a rho
+      else raise Ill_Formed_Stack
+  | PROJ (e1,e2)::e ->
+      if List.length acc >= a + 1 then
+        stackmc_prototype ((proj_stack_calc (List.hd acc) e1)::drop acc 1) e a rho
   | [] ->
       if List.length acc = a + 1 then List.hd acc else raise Ill_Formed_Stack
 

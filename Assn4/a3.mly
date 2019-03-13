@@ -17,81 +17,88 @@ The language should contain the following types of expressions:  integers and bo
 */
 
 main:
-    or_expr DELIMITER                         { $1 }
-    | or_expr                                 { $1 }
-    | EOF                                       { Done }
+    or_expr DELIMITER                               { $1 }
+    | or_expr                                       { $1 }
+    | EOF                                           { Done }
 ;
 
 or_expr:
-    or_expr DISJ and_expr                         {Disjunction ($1, $3)}
-    | and_expr                                  {$1}
+    or_expr DISJ and_expr                           {Disjunction ($1, $3)}
+    | and_expr                                      {$1}
 ;
 
 and_expr:
-    and_expr CONJ not_expr                        {Conjunction ($1, $3)}
-    | not_expr                                   {$1}
+    and_expr CONJ not_expr                          {Conjunction ($1, $3)}
+    | not_expr                                      {$1}
 ;
 
 not_expr:
-    NOT comparison_expr                              {Not ($2)}
-    | comparison_expr                                {$1}
+    NOT comparison_expr                             {Not ($2)}
+    | comparison_expr                               {$1}
 ;
 
 comparison_expr:
-    comparison_expr GT EQ sub_expr             {GreaterTE ($1, $4)}
-    | comparison_expr LT EQ sub_expr           {LessTE ($1, $4)}
-    | comparison_expr GT sub_expr              {GreaterT ($1, $3)}
-    | comparison_expr LT sub_expr              {LessT ($1, $3)}
-    | comparison_expr EQ sub_expr               {Equals ($1, $3)}
-    | sub_expr                                  {$1}
+    comparison_expr GT EQ add_sub_expr              {GreaterTE ($1, $4)}
+    | comparison_expr LT EQ add_sub_expr            {LessTE ($1, $4)}
+    | comparison_expr GT add_sub_expr               {GreaterT ($1, $3)}
+    | comparison_expr LT add_sub_expr               {LessT ($1, $3)}
+    | comparison_expr EQ add_sub_expr               {Equals ($1, $3)}
+    | add_sub_expr                                  {$1}
 ;
 
-sub_expr:
-    sub_expr MINUS add_expr                     {Sub ($1, $3)}
-    | add_expr                                  {$1}
+add_sub_expr:
+    add_sub_expr MINUS div_mult_rem_expr            {Sub ($1, $3)}
+    | add_sub_expr PLUS div_mult_rem_expr           {Add ($1, $3)}
+    | div_mult_rem_expr                             {$1}
 ;
 
-add_expr:
-    add_expr PLUS mult_expr                     {Add ($1, $3)}
-    | mult_expr                                 {$1}
-;
-mult_expr:
-    mult_expr TIMES mod_expr                      {Mult ($1, $3)}
-    | mod_expr                                  {$1}
-;
-mod_expr:
-    mod_expr REM div_expr                       {Rem ($1, $3)}
-    | div_expr                                  {$1}
-;
-div_expr:
-    div_expr DIV exponent_expr                  {Div ($1, $3)}
-    | exponent_expr                             {$1}
+div_mult_rem_expr:
+    div_mult_rem_expr TIMES exponent_expr           {Mult ($1, $3)}
+    | div_mult_rem_expr REM exponent_expr           {Rem ($1, $3)}
+    | div_mult_rem_expr DIV exponent_expr           {Div ($1, $3)}
+    | exponent_expr                                 {$1}
 ;
 exponent_expr:
-    abs_expr EXP exponent_expr                  {Exp ($1, $3)}
-    | abs_expr                                  {$1}
+    abs_expr EXP exponent_expr                      {Exp ($1, $3)}
+    | abs_expr                                      {$1}
 ;
 abs_expr:
-    ABS unary_minus_expr                         {Abs ($2)}
-    | unary_minus_expr                           {$1}
+    ABS unary_minus_expr                            {Abs ($2)}
+    | unary_minus_expr                              {$1}
 ;
 
 unary_minus_expr:
-    TILDA paren_expr                              {Negative($2)}
-    | paren_expr                                  {$1}
-
-paren_expr:
-    LP or_expr RP                         {InParen($2)}
-    | ifte_expr                                  {$1}
+    TILDA ifte_expr                                 {Negative($2)}
+    | ifte_expr                                     {$1}
 ;
 
 ifte_expr:
-  IF or_expr THEN or_expr ELSE or_expr FI  {IfThenElse($2,$4,$6)}
-  | constant                                  {$1}
+  IF or_expr THEN or_expr ELSE or_expr FI           {IfThenElse($2,$4,$6)}
+  | proj_expr                                       {$1}
+
+proj_expr:
+  PROJ LP or_expr COMMA or_expr RP tuple_expr       {Project (($3,$5),$7)}
+  | tuple_expr                                      {$1}
+;
+tuple_expr:
+  LP tuple_sub2_expr COMMA tuple_sub1_expr RP       {Tuple (((List.length $4)+1), ($2::$4))}
+  | paren_expr                                      {$1}
+;
+tuple_sub1_expr:
+  tuple_sub2_expr COMMA tuple_sub1_expr             {$1::$3}
+  | tuple_sub2_expr                                 {[$1]}
+;
+tuple_sub2_expr:
+  or_expr                                           {$1}
+  | paren_expr                                      {$1}
+;
+paren_expr:
+  LP or_expr RP                                     {InParen($2)}
+  | constant                                        {$1}
 ;
 
 constant:
-    ID                                          {Var ($1)}
-    | INT                                       {N ($1)}
-    | BOOL                                      {B ($1)}
+    ID                                              {Var ($1)}
+    | INT                                           {N ($1)}
+    | BOOL                                          {B ($1)}
 ;

@@ -53,6 +53,7 @@
    |    "then"                  {THEN}
    |    "else"                  {ELSE}
    |    "fi"                    {FI}
+   |    "proj"                  {PROJ}
    |    identifiers as x        {ID (x)}
    |    ';'                     {DELIMITER}
    |    eof                     {EOF}
