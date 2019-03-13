@@ -139,23 +139,23 @@ and eval exp rho =
     | _, _ -> raise Invalid_Expression )
   | Equals (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a = b)
+    | NumVal a, NumVal b -> BoolVal (a = b)
     | _, _ -> raise Invalid_Expression )
   | GreaterTE (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a >= b)
+    | NumVal a, NumVal b -> BoolVal (a >= b)
     | _, _ -> raise Invalid_Expression )
   | LessTE (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a <= b)
+    | NumVal a, NumVal b -> BoolVal (a <= b)
     | _, _ -> raise Invalid_Expression )
   | GreaterT (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a > b)
+    | NumVal a, NumVal b -> BoolVal (a > b)
     | _, _ -> raise Invalid_Expression )
   | LessT (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a < b)
+    | NumVal a, NumVal b -> BoolVal (a < b)
     | _, _ -> raise Invalid_Expression )
   | InParen e1 -> eval e1 rho
   | IfThenElse (e1, e2, e3) -> (

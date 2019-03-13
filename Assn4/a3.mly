@@ -39,6 +39,7 @@ and_expr:
 
 not_expr:
     NOT comparison_expr                             {Not ($2)}
+    | NOT not_expr                                    {Not ($2)}
     | comparison_expr                               {$1}
 ;
 
@@ -69,11 +70,13 @@ div_mult_rem_expr:
 ; */
 abs_expr:
     ABS unary_minus_expr                            {Abs ($2)}
+    | ABS abs_expr                                  {Abs ($2)}
     | unary_minus_expr                              {$1}
 ;
 
 unary_minus_expr:
     TILDA ifte_expr                                 {Negative($2)}
+    | TILDA abs_expr                                  {Negative($2)}
     | ifte_expr                                     {$1}
 ;
 
