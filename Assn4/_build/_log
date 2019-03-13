@@ -1,26 +1,37 @@
 ### Starting build.
+# Target: a0.mli.depends, tags: { extension:mli, file:a0.mli, ocaml, ocamldep, quiet }
+ocamldep.opt -modules a0.mli > a0.mli.depends # cached
+# Target: a0.cmi, tags: { byte, compile, extension:mli, file:a0.mli, interf, ocaml, quiet }
+ocamlc.opt -c -o a0.cmi a0.mli # cached
 # Target: a0.ml.depends, tags: { extension:ml, file:a0.ml, ocaml, ocamldep, quiet }
 ocamldep.opt -modules a0.ml > a0.ml.depends # cached
 # Target: a0.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:a0.cmo, file:a0.ml, implem, ocaml, quiet }
 ocamlc.opt -c -o a0.cmo a0.ml # cached
+# Target: a1.mli.depends, tags: { extension:mli, file:a1.mli, ocaml, ocamldep, quiet }
+ocamldep.opt -modules a1.mli > a1.mli.depends # cached
+# Target: a1.cmi, tags: { byte, compile, extension:mli, file:a1.mli, interf, ocaml, quiet }
+ocamlc.opt -c -o a1.cmi a1.mli # cached
 # Target: a1.ml.depends, tags: { extension:ml, file:a1.ml, ocaml, ocamldep, quiet }
-ocamldep.opt -modules a1.ml > a1.ml.depends # cached
+ocamldep.opt -modules a1.ml > a1.ml.depends
 # Target: a1.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:a1.cmo, file:a1.ml, implem, ocaml, quiet }
-ocamlc.opt -c -o a1.cmo a1.ml # cached
+ocamlc.opt -c -o a1.cmo a1.ml
 # Target: a2.mll, tags: { extension:mll, file:a2.mll, lexer, ocaml, ocamllex, quiet }
-ocamllex.opt -q a2.mll
+ocamllex.opt -q a2.mll # cached
 # Target: a2.ml.depends, tags: { extension:ml, file:a2.ml, ocaml, ocamldep, quiet }
-ocamldep.opt -modules a2.ml > a2.ml.depends
+ocamldep.opt -modules a2.ml > a2.ml.depends # cached
 # Target: a3.mly, tags: { extension:mly, file:a3.mly, infer, ocaml, ocamlyacc, parser, quiet }
-ocamlyacc a3.mly # cached
+ocamlyacc a3.mly
++ ocamlyacc a3.mly
+1 rule never reduced
+2 reduce/reduce conflicts.
 # Target: a3.mli.depends, tags: { extension:mli, file:a3.mli, ocaml, ocamldep, quiet }
 ocamldep.opt -modules a3.mli > a3.mli.depends # cached
 # Target: a3.cmi, tags: { byte, compile, extension:mli, file:a3.mli, interf, ocaml, quiet }
 ocamlc.opt -c -o a3.cmi a3.mli # cached
 # Target: a2.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:a2.cmo, file:a2.ml, implem, ocaml, quiet }
-ocamlc.opt -c -o a2.cmo a2.ml
+ocamlc.opt -c -o a2.cmo a2.ml # cached
 # Target: a3.ml.depends, tags: { extension:ml, file:a3.ml, ocaml, ocamldep, quiet }
-ocamldep.opt -modules a3.ml > a3.ml.depends
+ocamldep.opt -modules a3.ml > a3.ml.depends # cached
 # Target: a3.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:a3.cmo, file:a3.ml, implem, ocaml, quiet }
-ocamlc.opt -c -o a3.cmo a3.ml
+ocamlc.opt -c -o a3.cmo a3.ml # cached
 # Compilation successful.

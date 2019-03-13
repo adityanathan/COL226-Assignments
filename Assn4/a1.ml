@@ -6,76 +6,79 @@ exception Empty_input
 
 (* abstract syntax  *)
 type exptree =
-  | Done
+  | Var of string
+  (* variables starting with a Capital letter, represented as alphanumeric strings with underscores (_) and apostrophes (') *)
   | N of int
   (* Integer constant *)
   | B of bool
   (* Boolean constant *)
-  | Var of string
-  (* variable *)
+  (* unary operators on integers *)
+  | Abs of exptree
+  (* abs *)
+  | Negative of exptree
+  (* unary minus ~ *)
+  (* unary operators on booleans *)
+  | Not of exptree
+  (* binary operators on integers *)
+  | Add of exptree * exptree
+  (* Addition + *)
+  | Sub of exptree * exptree
+  (* Subtraction - *)
+  | Mult of exptree * exptree
+  (* Multiplication * *)
+  | Div of exptree * exptree
+  (* div *)
+  | Rem of exptree * exptree
+  (* mod *)
+  (* binary operators on booleans *)
   | Conjunction of exptree * exptree
-  (* binary operators on booleans /\ *)
+  (* conjunction /\ *)
   | Disjunction of exptree * exptree
   (* binary operators on booleans \/ *)
+  (* comparison operations on integers *)
   | Equals of exptree * exptree
-  (* comparison operations on integers *)
+  (* = *)
   | GreaterTE of exptree * exptree
-  (* comparison operations on integers *)
+  (* >= *)
   | LessTE of exptree * exptree
-  (* comparison operations on integers *)
+  (* <= *)
   | GreaterT of exptree * exptree
-  (* comparison operations on integers *)
+  (* > *)
   | LessT of exptree * exptree
-  (* comparison operations on integers *)
-  | InParen of exptree
+  (* < *)
   (* expressions using parenthesis *)
-  | IfThenElse of exptree * exptree * exptree
+  | InParen of exptree
+  (* ( ) *)
   (* a conditional expression *)
-  | Tuple of int * exptree list
+  | IfThenElse of exptree * exptree * exptree
+  (* if then else fi  *)
   (* creating n-tuples (n >= 0) *)
-  | Project of (int * int) * exptree
+  | Tuple of int * exptree list
   (* projecting the i-th component of an expression (which evaluates to an n-tuple, and 1 <= i <= n) *)
-  | Add of exptree * exptree
-  (* binary operators on integers *)
-  | Sub of exptree * exptree
-  (* binary operators on integers *)
-  | Mult of exptree * exptree
-  (* binary operators on integers *)
-  | Div of exptree * exptree
-  (* binary operators on integers *)
-  | Rem of exptree * exptree
-  (* binary operators on integers *)
-  | Negative of exptree
-  | Not of exptree
-  | Exp of exptree * exptree
-  (* unary operators on booleans *)
-  | Abs of exptree
+  | Project of (int * int) * exptree
 
 (* unary operators on integers *)
 
 type opcode =
-  | DONE
   | VAR of string
   | NCONST of bigint
   | BCONST of bool
-  | PLUS
-  | MULT
-  | MINUS
-  | DIV
-  | REM
-  | EXP
   | ABS
   | UNARYMINUS
+  | NOT
+  | PLUS
+  | MINUS
+  | MULT
+  | DIV
+  | REM
+  | CONJ
+  | DISJ
   | EQS
   | GTE
   | LTE
   | GT
   | LT
-  | LPAREN
-  | RPAREN
-  | CONJ
-  | DISJ
-  | NOT
+  | PAREN
   | IFTE
   | TUPLE of int
   | PROJ of int * int
@@ -122,7 +125,7 @@ and eval_projection a b list rho =
 
 and eval exp rho =
   match exp with
-  | Done -> raise Empty_input
+  (* Done -> raise Empty_input *)
   | N number -> NumVal number
   | B value -> BoolVal value
   | Var var_name -> rho var_name
@@ -136,23 +139,23 @@ and eval exp rho =
     | _, _ -> raise Invalid_Expression )
   | Equals (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a = b)
+    | NumVal a, NumVal b -> BoolVal (a = b)
     | _, _ -> raise Invalid_Expression )
   | GreaterTE (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a >= b)
+    | NumVal a, NumVal b -> BoolVal (a >= b)
     | _, _ -> raise Invalid_Expression )
   | LessTE (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a <= b)
+    | NumVal a, NumVal b -> BoolVal (a <= b)
     | _, _ -> raise Invalid_Expression )
   | GreaterT (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a > b)
+    | NumVal a, NumVal b -> BoolVal (a > b)
     | _, _ -> raise Invalid_Expression )
   | LessT (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
-    | BoolVal a, BoolVal b -> BoolVal (a < b)
+    | NumVal a, NumVal b -> BoolVal (a < b)
     | _, _ -> raise Invalid_Expression )
   | InParen e1 -> eval e1 rho
   | IfThenElse (e1, e2, e3) -> (
@@ -195,10 +198,10 @@ and eval exp rho =
     (* Done to make sure Euclidean Division is satisfied *)
     (* To make remainder always greater than 0 *)
     | _, _ -> raise Invalid_Expression )
-  | Exp (e1, e2) -> (
+  (* | Exp (e1, e2) -> (
     match (eval e1 rho, eval e2 rho) with
     | NumVal a, NumVal b -> NumVal (eval_exponent 1 a b)
-    | _, _ -> raise Invalid_Expression )
+    | _, _ -> raise Invalid_Expression ) *)
   | Negative e1 -> (
     match eval e1 rho with
     | NumVal a -> NumVal (-1 * a)
@@ -211,14 +214,15 @@ and eval exp rho =
     match eval e1 rho with
     | NumVal a -> if a < 0 then NumVal (-1 * a) else NumVal a
     | _ -> raise Invalid_Expression )
-  | _ -> raise Invalid_Expression
+
+(* | _ -> raise Invalid_Expression *)
 
 let rec compile_tuple x acc =
   match x with [] -> acc | hd :: tl -> compile_tuple tl acc @ compile hd
 
 and compile exp =
   match exp with
-  | Done -> [DONE]
+  (* Done -> [DONE] *)
   | Var x -> [VAR x]
   | N number -> [NCONST (mk_big number)]
   | B value -> [BCONST value]
@@ -229,7 +233,7 @@ and compile exp =
   | LessT (e1, e2) -> compile e1 @ compile e2 @ [LT]
   | Conjunction (e1, e2) -> compile e1 @ compile e2 @ [CONJ]
   | Disjunction (e1, e2) -> compile e1 @ compile e2 @ [DISJ]
-  | InParen e1 -> [LPAREN] @ compile e1 @ [RPAREN]
+  | InParen e1 -> [PAREN] @ compile e1 @ [PAREN]
   | Add (e1, e2) -> compile e1 @ compile e2 @ [PLUS]
   | Sub (e1, e2) -> compile e1 @ compile e2 @ [MINUS]
   | Mult (e1, e2) -> compile e1 @ compile e2 @ [MULT]
@@ -238,10 +242,10 @@ and compile exp =
   | Abs e1 -> compile e1 @ [ABS]
   | Negative e1 -> compile e1 @ [UNARYMINUS]
   | Not e1 -> compile e1 @ [NOT]
-  | Exp (e1, e2) -> compile e1 @ compile e2 @ [EXP]
+  (* | Exp (e1, e2) -> compile e1 @ compile e2 @ [EXP] *)
   | IfThenElse (e1, e2, e3) -> compile e3 @ compile e2 @ compile e1 @ [IFTE]
   | Tuple (e1, e2) ->
-      if List.length e2 = e1 then compile_tuple e2 @ [TUPLE e1]
+      if List.length e2 = e1 then compile_tuple e2 [] @ [TUPLE e1]
       else raise Illegal_Tuple
   | Project ((e1, e2), e3) -> (
     match e3 with
@@ -250,7 +254,8 @@ and compile exp =
         else if e1 > e2 || e1 < 1 then raise Projection_Index_Out_of_bounds
         else raise Illegal_Tuple
     | _ -> raise Illegal_Tuple )
-  | _ -> raise Invalid_Expression
+
+(* | _ -> raise Invalid_Expression *)
 
 exception Drop_number_exceeds_list
 
@@ -274,16 +279,16 @@ let get_bool (a : answer) =
 let rec tuple_stack_calc stack n acc =
   match n with
   | 0 -> acc
-  | a -> tuple_stack_calc (List.tl stack) (a - 1) (List.hd stack) :: acc
+  | a -> tuple_stack_calc (List.tl stack) (a - 1) (acc @ [List.hd stack])
 
 let rec proj_stack_calc tupl n =
   match tupl with
-  | Tup(a,b) -> List.hd (drop b (n-1))
+  | Tup (a, b) -> List.hd (drop b (n - 1))
   | _ -> raise Illegal_Tuple
 
 let rec find_paren list accumulator =
   match list with
-  | RPAREN :: e -> accumulator
+  | PAREN :: e -> accumulator
   | a :: b -> find_paren b accumulator @ [a]
   | [] -> raise Ill_Formed_Stack
 
@@ -291,7 +296,7 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
     =
   (* try *)
   match op with
-  | DONE :: e -> raise Empty_input
+  (* DONE :: e -> raise Empty_input *)
   | VAR (x : string) :: e -> stackmc_prototype (rho x :: acc) e a rho
   | NCONST (num : bigint) :: e -> stackmc_prototype (Num num :: acc) e a rho
   | BCONST (value : bool) :: e -> stackmc_prototype (Bool value :: acc) e a rho
@@ -316,7 +321,7 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
           :: drop acc 2 )
           e a rho
       else raise Ill_Formed_Stack
-  | EXP :: e ->
+  (* | EXP :: e ->
       if List.length acc >= a + 2 then
         stackmc_prototype
           ( Num
@@ -326,7 +331,7 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
                  (get_int (List.hd acc)))
           :: drop acc 2 )
           e a rho
-      else raise Ill_Formed_Stack
+      else raise Ill_Formed_Stack *)
   | DIV :: e ->
       if List.length acc >= a + 2 then
         stackmc_prototype
@@ -388,11 +393,12 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
           :: drop acc 2 )
           e a rho
       else raise Ill_Formed_Stack
-  | LPAREN :: e ->
+  (* | LPAREN :: e ->
       let temp = stackmc_prototype [] (find_paren e []) 0 rho in
       stackmc_prototype (temp :: acc)
         (drop e (List.length (find_paren e []) + 1))
-        a rho
+        a rho *)
+  | PAREN :: e -> stackmc_prototype acc e a rho
   | CONJ :: e ->
       if List.length acc >= a + 2 then
         stackmc_prototype
@@ -425,12 +431,15 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
   | TUPLE e1 :: e ->
       if List.length acc >= a + e1 then
         stackmc_prototype
-          ((Tup (e1, tuple_stack_calc acc e1 [])) :: drop acc e1)
+          (Tup (e1, tuple_stack_calc acc e1 []) :: drop acc e1)
           e a rho
       else raise Ill_Formed_Stack
-  | PROJ (e1,e2)::e ->
+  | PROJ (e1, e2) :: e ->
       if List.length acc >= a + 1 then
-        stackmc_prototype ((proj_stack_calc (List.hd acc) e1)::drop acc 1) e a rho
+        stackmc_prototype
+          (proj_stack_calc (List.hd acc) e1 :: drop acc 1)
+          e a rho
+      else raise Ill_Formed_Stack
   | [] ->
       if List.length acc = a + 1 then List.hd acc else raise Ill_Formed_Stack
 

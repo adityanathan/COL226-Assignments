@@ -1,5 +1,10 @@
 %{
     open A1
+    exception Tuple_value_not_an_integer
+    exception Empty_Expression
+    let extract_int x = match x with
+      N (a) -> a
+    | _     -> raise Tuple_value_not_an_integer
 %}
 
 /* Tokens are defined below.  */
@@ -19,7 +24,7 @@ The language should contain the following types of expressions:  integers and bo
 main:
     or_expr DELIMITER                               { $1 }
     | or_expr                                       { $1 }
-    | EOF                                           { Done }
+    | EOF                                           { raise Empty_Expression }
 ;
 
 or_expr:
@@ -53,15 +58,15 @@ add_sub_expr:
 ;
 
 div_mult_rem_expr:
-    div_mult_rem_expr TIMES exponent_expr           {Mult ($1, $3)}
-    | div_mult_rem_expr REM exponent_expr           {Rem ($1, $3)}
-    | div_mult_rem_expr DIV exponent_expr           {Div ($1, $3)}
-    | exponent_expr                                 {$1}
-;
-exponent_expr:
-    abs_expr EXP exponent_expr                      {Exp ($1, $3)}
+    div_mult_rem_expr TIMES abs_expr                {Mult ($1, $3)}
+    | div_mult_rem_expr REM abs_expr                {Rem ($1, $3)}
+    | div_mult_rem_expr DIV abs_expr                {Div ($1, $3)}
     | abs_expr                                      {$1}
 ;
+/* exponent_expr:
+    abs_expr EXP exponent_expr                      {Exp ($1, $3)}
+    | abs_expr                                      {$1}
+; */
 abs_expr:
     ABS unary_minus_expr                            {Abs ($2)}
     | unary_minus_expr                              {$1}
@@ -75,9 +80,9 @@ unary_minus_expr:
 ifte_expr:
   IF or_expr THEN or_expr ELSE or_expr FI           {IfThenElse($2,$4,$6)}
   | proj_expr                                       {$1}
-
+;
 proj_expr:
-  PROJ LP or_expr COMMA or_expr RP tuple_expr       {Project (($3,$5),$7)}
+  PROJ LP constant COMMA constant RP tuple_expr     {Project ((extract_int $3, extract_int $5),$7)}
   | tuple_expr                                      {$1}
 ;
 tuple_expr:
