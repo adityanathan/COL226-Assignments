@@ -21,7 +21,7 @@
 
    let nz_digit = ['1'-'9']
    let digit = ['0'-'9']
-   let integer_constant = ['+' '-']? '0'|['+' '-']? nz_digit digit*
+   let integer_constant ='0'|nz_digit digit*
    let identifiers = ['A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9']*
    let whitespace = ' '|'\n'|'\r'|'\t'
    (* let trailing_zero_error = ['+' '-']? ('0')(('0')+)|['+' '-']? nz_digit digit*

@@ -76,7 +76,7 @@ abs_expr:
 
 unary_minus_expr:
     TILDA ifte_expr                                 {Negative($2)}
-    | TILDA abs_expr                                  {Negative($2)}
+    | TILDA abs_expr                                {Negative($2)}
     | ifte_expr                                     {$1}
 ;
 

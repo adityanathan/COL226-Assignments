@@ -119,7 +119,7 @@ and eval_projection a b list rho =
     match list with
     | [] -> raise Projection_Index_Out_of_bounds
     | hd :: tl ->
-        if a = 1 then eval hd rho else eval_projection (a - 1) (b - 1) tl rho
+        (if a = 1 then hd else eval_projection (a - 1) (b - 1) tl rho)
   else if a < 1 || a > b then raise Projection_Index_Out_of_bounds
   else raise Illegal_Tuple
 
@@ -166,8 +166,8 @@ and eval exp rho =
       if e1 = List.length e2 then TupVal (e1, eval_tuple [] e2 rho)
       else raise Illegal_Tuple
   | Project ((e1, e2), e3) -> (
-    match e3 with
-    | Tuple (a, b) ->
+    match eval e3 rho with
+    | TupVal (a, b) ->
         if a = e2 then eval_projection e1 e2 b rho else raise Illegal_Tuple
     | _ -> raise Illegal_Tuple )
   | Add (e1, e2) -> (
@@ -253,6 +253,8 @@ and compile exp =
         if e2 = a && e1 <= e2 && e1 >= 1 then compile e3 @ [PROJ (e1, e2)]
         else if e1 > e2 || e1 < 1 then raise Projection_Index_Out_of_bounds
         else raise Illegal_Tuple
+    | Var (x) -> [VAR x] @ [PROJ (e1, e2)]
+    | InParen (x) -> [PAREN] @ compile x @ [PAREN] @ [PROJ (e1, e2)]
     | _ -> raise Illegal_Tuple )
 
 (* | _ -> raise Invalid_Expression *)
@@ -297,7 +299,7 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
   (* try *)
   match op with
   (* DONE :: e -> raise Empty_input *)
-  | VAR (x : string) :: e -> stackmc_prototype (rho x :: acc) e a rho
+  | VAR (x : string) :: e -> stackmc_prototype ((rho x) :: acc) e a rho
   | NCONST (num : bigint) :: e -> stackmc_prototype (Num num :: acc) e a rho
   | BCONST (value : bool) :: e -> stackmc_prototype (Bool value :: acc) e a rho
   | PLUS :: e ->
