@@ -62,9 +62,22 @@ let e = (exp_parser "\\X.Y" rho);;
 let t = Tfunc (Tint, Tbool);;
 
 (* Type assumptions as a list of tuples of the form (variable name, type) *)
-let g = [("X", Tint), ("Y", Tbool), ("Z", Ttuple [Tint ; Tbool ; Tint]), ("W", Tfunc (Tint, Tbool))];;
+let g = [("X", Tint); ("Y", Tbool); ("Z", Ttuple [Tint ; Tbool ; Tint]); ("W", Tfunc (Tint, Tbool))];;
 let d = (def_parser "def U = X ; def V = Y" rho);;
-let g_dash = [("U", Tint), ("V", Tbool)];;
+let g_dash = [("U", Tint); ("V", Tbool)];;
 
 assert(hastype g e t);;
 assert(yields g d g_dash);;
+
+let deleteThis1 s rho = A3.exp_parser A2.read (Lexing.from_string s);;
+let deleteThis2 s rho = A3.def_parser A2.read (Lexing.from_string s);;
+
+let g_dash1 = [("U", Tbool);("U", Tbool)];;
+let g_dash2 = [("U", Tbool)];;
+let g_dash3 = [("U", Tint)];;
+let g_dash4 = [("U", Tbool);("U", Tint)];;
+let a = deleteThis2 "def U = X+2*3 > 12 /\\ T" rho;;
+yields g a g_dash1 = false;;
+yields g a g_dash2 = true;;
+yields g a g_dash3 = false;;
+yields g a g_dash4 = false;;

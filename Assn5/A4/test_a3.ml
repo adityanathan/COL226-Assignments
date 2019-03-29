@@ -3,10 +3,12 @@
 #load "a1.cmo";;
 #load "a2.cmo";;
 #load "a3.cmo";;
+#load "a4.cmo";;
 open A0;;
 open A1;;
 open A2;;
 open A3;;
+open A4;;
 
 exception Not_implemented
 (* Helper function to print *)
@@ -51,6 +53,15 @@ let rho s = match s with
 
 let _ = (parser "5" rho);;
 
-let result x = parser x rho;;
+let rho s = match s with
+  "X" -> NumVal 5
+  |  "Y" -> BoolVal true
+  |  "Z" -> TupVal (3, [NumVal 5; BoolVal true; NumVal 1])
+  | _ -> raise Not_implemented
+;;
 
-let lexer x = A3.main A2.read (Lexing.from_string x);;
+let exp_parser s rho = A3.exp_parser A2.read (Lexing.from_string s) ;;
+let def_parser s rho = A3.def_parser A2.read (Lexing.from_string s) ;;
+
+let e_parser s = exp_parser s rho;;
+let d_parser s = def_parser s rho;;
