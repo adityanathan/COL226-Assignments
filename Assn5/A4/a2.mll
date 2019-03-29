@@ -1,4 +1,5 @@
 (*
+  Below is a dummy implementation. Please note the following
   - Tokens are defined in A3.mly
   - Return type is token and not token list
   - End of buffer is indicated by EOF token below
@@ -53,15 +54,15 @@
    |    "else"                  {ELSE}
    |    "fi"                    {FI}
    |    "proj"                  {PROJ}
-   |		"let"										{LET}
-	 |		"in"										{IN}
-   |		"end"										{END}
-   |		"\\"										{BACKSLASH}
-   |		'.'											{DOT}
-   |		"def"										{DEF}
+   |	"let"			{LET}
+   |	"in"			{IN}
+   |	"end"			{END}
+   |	"\\"			{BACKSLASH}
+   |	'.'			{DOT}
+   |	"def"			{DEF}
    |    ';'                     {DELIMITER}
-   |		"||"										{PARALLEL}
-   |		"local"									{LOCAL}
+   |	"||"			{PARALLEL}
+   |	"local"			{LOCAL}
    |    identifiers as x        {ID (x)}
    |    eof                     {EOF}
    |    whitespace              {read lexbuf}

@@ -133,9 +133,9 @@ let rec eval_tuple acc list rho =
   | [] -> acc
   | hd :: tl -> eval_tuple (acc @ [eval hd rho]) tl rho
 
-and eval_projection a b l rho =
-  if b = List.length l && a <= b && a >= 1 then
-    match l with
+and eval_projection a b list rho =
+  if b = List.length list && a <= b && a >= 1 then
+    match list with
     | [] -> raise Projection_Index_Out_of_bounds
     | hd :: tl -> if a = 1 then hd else eval_projection (a - 1) (b - 1) tl rho
   else if a < 1 || a > b then raise Projection_Index_Out_of_bounds
