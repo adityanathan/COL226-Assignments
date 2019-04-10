@@ -105,12 +105,9 @@ function_call_expr:
 	function_def_expr LP function_call_expr RP							{FunctionCall($1,$3)}
 	|	ID LP function_call_expr RP														{FunctionCall(Var($1),$3)}
 	| function_def_expr																			{$1}
-;
-
-function_call_expr_main:
-	function_call_expr																			{$1}
 	| let_expr																							{$1}
 ;
+
 function_def_expr:
 BACKSLASH ID COLON type_expr DOT or_expr															{FunctionAbstraction($2,$6,$4)}
 | BACKSLASH ID COLON type_expr DOT LP or_expr RP											{FunctionAbstraction($2,$7,$4)}
