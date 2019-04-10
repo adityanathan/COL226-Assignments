@@ -181,7 +181,7 @@ and match_list_of_types g e t =
   else false
 
 (* yields : ((string * exptype) list) -> definition -> ((string * exptype) list) -> bool *)
-and yields g d g_dash =
+and yields g d g_dash = try
   match d with
   | Simple (e1, e2) ->
       if e1 = get_tup_1 (List.hd g_dash) && (List.length g_dash)=1 then hastype g e2 (get_tup_2 (List.hd g_dash)) else false
@@ -199,3 +199,5 @@ and yields g d g_dash =
         if yields g e [e_dash] then yields g (List.hd (List.tl e1)) (List.tl g_dash)
         else false
   | Local (d1, d2) -> yields ((type_infer_list g d1) @ g) d2 g_dash
+with
+ _ -> false

@@ -22,26 +22,9 @@ LET IN END BACKSLASH DOT DEF SEMICOLON PARALLEL LOCAL EOF
 %%
 
 exp_parser:
-	function_call_expr                                       { $1 }
+	or_expr                                       { $1 }
   | EOF                                           				{ raise Empty_Expression }
 ;
-
-function_def_expr:
-	BACKSLASH ID DOT exp_parser															{FunctionAbstraction($2,$4)}
-	| BACKSLASH ID DOT LP exp_parser RP											{FunctionAbstraction($2,$5)}
-
-function_call_expr:
-	function_def_expr LP function_call_expr RP							{FunctionCall($1,$3)}
-	| function_def_expr																			{$1}
-	| let_expr																							{$1}
-
-let_expr:
-	LET def_parser IN exp_parser END												{Let($2,$4)}
-	| or_expr																								{$1}
-
-
-	/* |	BACKSLASH ID exp_parser												{FunctionAbstraction($2,$3)} */
-	/* |	def_exp_parser																 */
 
 or_expr:
   or_expr DISJ and_expr                           {Disjunction ($1, $3)}
@@ -106,7 +89,7 @@ proj_expr:
 ;
 tuple_expr:
   LP tuple_sub2_expr COMMA tuple_sub1_expr RP       {Tuple (((List.length $4)+1), ($2::$4))}
-  | paren_expr                                      {$1}
+  | function_call_expr                                      {$1}
 ;
 tuple_sub1_expr:
   tuple_sub2_expr COMMA tuple_sub1_expr             {$1::$3}
@@ -114,12 +97,31 @@ tuple_sub1_expr:
 ;
 tuple_sub2_expr:
   or_expr                                           {$1}
-  | paren_expr                                      {$1}
+  | function_call_expr                                      {$1}
 ;
+
+function_def_expr:
+	BACKSLASH ID DOT or_expr															{FunctionAbstraction($2,$4)}
+	| BACKSLASH ID DOT LP or_expr RP											{FunctionAbstraction($2,$5)}
+
+function_call_expr:
+	function_def_expr LP function_call_expr RP							{FunctionCall($1,$3)}
+	|	ID LP function_call_expr RP														{FunctionCall(Var($1),$3)}
+	| function_def_expr																			{$1}
+	| let_expr																							{$1}
+
+let_expr:
+	LET def_parser IN exp_parser END												{Let($2,$4)}
+	| paren_expr																								{$1}
+
+
+	/* |	BACKSLASH ID exp_parser												{FunctionAbstraction($2,$3)} */
+	/* |	def_exp_parser																 */
+
 paren_expr:
-  LP or_expr RP                                     {InParen($2)}
-  | constant                                        {$1}
-;
+LP or_expr RP                                     {InParen($2)}
+| constant                                        {$1}
+	;
 
 constant:
     ID                                              {Var ($1)}
