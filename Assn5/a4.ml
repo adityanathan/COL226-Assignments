@@ -90,6 +90,13 @@ let rec type_infer g e =
   | Not e1 -> if hastype g e1 Tbool then Tbool else raise Type_infer_invalid
   | Abs e1 -> if hastype g e1 Tint then Tint else raise Type_infer_invalid
   | Let (d, e) -> type_infer (type_infer_list g d @ g) e
+  | FunctionAbstraction (str, exp, type_explicit) ->
+      Tfunc (type_explicit, type_infer ((str, type_explicit) :: g) exp)
+  | FunctionCall (e1, e2) -> (
+    match type_infer g e1 with
+    | Tfunc (t1, t2) ->
+        if hastype g e2 t1 then t2 else raise Type_infer_invalid
+    | _ -> raise Type_infer_invalid )
 
 and tuple_type_infer g a =
   match a with
@@ -98,7 +105,26 @@ and tuple_type_infer g a =
 
 and type_infer_list g d =
   match d with
-  | Simple (e1, e2) -> [(e1, type_infer g e2)]
+  | Simple (e1, e2, t) -> t
+  | Sequence e1 -> (
+      let e = List.hd e1 in
+      match e with
+      | Simple (a, b, t) ->
+          let temp = (a, t) in
+          temp :: type_infer_list (temp :: g) (List.hd (List.tl e1))
+      | _ -> raise Type_infer_invalid )
+  | Parallel e1 -> (
+      let e = List.hd e1 in
+      match e with
+      | Simple (a, b, t) ->
+          let temp = (a, t) in
+          temp :: type_infer_list g (List.hd (List.tl e1))
+      | _ -> raise Type_infer_invalid )
+  | Local (d1, d2) -> type_infer_list (type_infer_list g d1 @ g) d2
+
+(* and type_infer_list g d =
+  match d with
+	| Simple(e1,e2,t) -> t
   | Sequence e1 -> (
       let e = List.hd e1 in
       match e with
@@ -114,6 +140,7 @@ and type_infer_list g d =
           temp :: type_infer_list g (List.hd (List.tl e1))
       | _ -> raise Type_infer_invalid )
   | Local (d1, d2) -> type_infer_list (type_infer_list g d1 @ g) d2
+	(* | Simple (e1, e2) -> [(e1, type_infer g e2)] *) *)
 
 (* --------------------------------------------------------------------------------- *)
 
@@ -166,12 +193,26 @@ and hastype g e t =
   | Not e1 -> if hastype g e1 Tbool then t = Tbool else false
   | Abs e1 -> if hastype g e1 Tint then t = Tint else false
   | Let (d, e) -> hastype (type_infer_list g d @ g) e t
-  | FunctionAbstraction (str, exp) -> (
+  | FunctionAbstraction (str, exp, type_explicit) -> (
     match t with
-    | Tfunc (t1, t2) -> hastype ((str, t1) :: g) exp t2
+    | Tfunc (t1, t2) ->
+        if type_explicit = t1 then hastype ((str, t1) :: g) exp t2 else false
     | _ -> false )
-  | FunctionCall (e1, e2) -> hastype g e1 (Tfunc (type_infer g e2, t))
+  | FunctionCall (e1, e2) -> (
+    match type_infer g e1 with Tfunc (tau1, tau2) ->
+      if tau2 = t then hastype (((find_parameter_name e1, tau1) :: g) e2 t)
+      else false )
 
+(* | FunctionCall (e1, e2) -> hastype g e1 (Tfunc (type_infer g e2, t)) *)
+and find_parameter_name f1 =
+  match f1 with
+  | FunctionAbstraction (str, exp, type_explicit) -> str
+  | Var x -> (
+    match find_variable x g with
+    | FunctionAbstraction (str, exp, type_explicit) -> str
+    | _ -> raise Type_infer_invalid )
+
+(* Redundant case. Will never be invoked*)
 and match_list_of_types g e t =
   if List.length e = List.length t then
     match (e, t) with
@@ -181,23 +222,29 @@ and match_list_of_types g e t =
   else false
 
 (* yields : ((string * exptype) list) -> definition -> ((string * exptype) list) -> bool *)
-and yields g d g_dash = try
-  match d with
-  | Simple (e1, e2) ->
-      if e1 = get_tup_1 (List.hd g_dash) && (List.length g_dash)=1 then hastype g e2 (get_tup_2 (List.hd g_dash)) else false
-  | Sequence e1 ->
-      let e = List.hd e1 in
-      let e_dash = List.hd g_dash in
-      if yields g e [e_dash] then
-        yields (e_dash :: g) (List.hd (List.tl e1)) (List.tl g_dash)
-      else false
-  | Parallel e1 ->
-      if check_list_overlap e1 then false
-      else
+and yields g d g_dash =
+  try
+    match d with
+    | Simple (e1, e2, type_explicit) ->
+        if
+          e1 = get_tup_1 (List.hd g_dash)
+          && List.length g_dash = 1
+          && type_explicit = get_tup_2 (List.hd g_dash)
+        then hastype g e2 type_explicit
+        else false
+    | Sequence e1 ->
         let e = List.hd e1 in
         let e_dash = List.hd g_dash in
-        if yields g e [e_dash] then yields g (List.hd (List.tl e1)) (List.tl g_dash)
+        if yields g e [e_dash] then
+          yields (e_dash :: g) (List.hd (List.tl e1)) (List.tl g_dash)
         else false
-  | Local (d1, d2) -> yields ((type_infer_list g d1) @ g) d2 g_dash
-with
- _ -> false
+    | Parallel e1 ->
+        if check_list_overlap e1 then false
+        else
+          let e = List.hd e1 in
+          let e_dash = List.hd g_dash in
+          if yields g e [e_dash] then
+            yields g (List.hd (List.tl e1)) (List.tl g_dash)
+          else false
+    | Local (d1, d2) -> yields (type_infer_list g d1 @ g) d2 g_dash
+  with _ -> false

@@ -61,6 +61,10 @@
    |		"def"										{DEF}
    |    ';'                     {SEMICOLON}
 	 |		':'											{COLON}
+	 |		"Tint"									{TINT}
+	 |		"Tbool"									{TBOOL}
+	 |		"Tunit"									{TUNIT}
+	 |		"->"										{ARROW}
    |		"||"										{PARALLEL}
    |		"local"									{LOCAL}
    |    identifiers as x        {ID (x)}

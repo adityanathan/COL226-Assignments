@@ -10,8 +10,7 @@
 /* Tokens are defined below.  */
 %token COMMA TILDA LP RP IF THEN ELSE FI DELIMITER EOF EQ GT
 LT ABS EXP DIV REM TIMES PLUS MINUS DISJ CONJ NOT PROJ
-LET IN END BACKSLASH DOT DEF SEMICOLON PARALLEL LOCAL EOF COLON TINT TBOOL TUNIT
-ARROW
+LET IN END BACKSLASH DOT DEF SEMICOLON PARALLEL LOCAL EOF
 
 %token <int> INT
 %token <bool> BOOL
@@ -98,25 +97,26 @@ tuple_sub1_expr:
 ;
 tuple_sub2_expr:
   or_expr                                           {$1}
-  /* | function_call_expr                                      {$1} */
+  | function_call_expr                                      {$1}
 ;
+
+function_def_expr:
+	BACKSLASH ID DOT or_expr															{FunctionAbstraction($2,$4)}
+	| BACKSLASH ID DOT LP or_expr RP											{FunctionAbstraction($2,$5)}
 
 function_call_expr:
 	function_def_expr LP function_call_expr RP							{FunctionCall($1,$3)}
 	|	ID LP function_call_expr RP														{FunctionCall(Var($1),$3)}
 	| function_def_expr																			{$1}
 	| let_expr																							{$1}
-;
-
-function_def_expr:
-BACKSLASH ID COLON type_expr DOT or_expr															{FunctionAbstraction($2,$6,$4)}
-| BACKSLASH ID COLON type_expr DOT LP or_expr RP											{FunctionAbstraction($2,$7,$4)}
-;
 
 let_expr:
 	LET def_parser IN exp_parser END												{Let($2,$4)}
 	| paren_expr																								{$1}
-;
+
+
+	/* |	BACKSLASH ID exp_parser												{FunctionAbstraction($2,$3)} */
+	/* |	def_exp_parser																 */
 
 paren_expr:
 LP or_expr RP                                     {InParen($2)}
@@ -137,25 +137,4 @@ def_parser:
 ;
 
 def_unit:
-	DEF ID COLON type_expr EQ exp_parser 												{ Simple($2, $6, $4) }
-;
-
-type_expr:
-	TINT																							{ Tint }
-	|	TBOOL																						{ Tbool }
-	|	TUNIT																						{	Tunit }
-	|	type_tuple_expr																	{$1}
-	| type_func_expr																	{$1}
-;
-
-type_tuple_expr:
-  LP type_expr TIMES type_tuple_sub1_expr RP       {TTuple ($2::$4)}
-;
-type_tuple_sub1_expr:
-  type_expr TIMES type_tuple_sub1_expr             {$1::$3}
-  | type_expr                                 			{[$1]}
-;
-
-type_func_expr:
-	type_expr ARROW type_expr													{Tfunc($1,$3)}
-;
+	DEF ID EQ exp_parser 																{ Simple($2, $4) }

@@ -57,12 +57,12 @@ type exptree =
   (* projecting the i-th component of an expression (which evaluates to an n-tuple, and 1 <= i <= n) *)
   | Project of (int * int) * exptree
   | Let of definition * exptree
-  | FunctionAbstraction of string * exptree
+  | FunctionAbstraction of string * exptree * exptype
   | FunctionCall of exptree * exptree
 
 (* definition *)
 and definition =
-  | Simple of string * exptree
+  | Simple of string * exptree * exptype
   | Sequence of definition list
   | Parallel of definition list
   | Local of definition * definition
