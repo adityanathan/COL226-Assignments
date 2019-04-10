@@ -85,7 +85,7 @@ ifte_expr:
   | proj_expr                                       {$1}
 ;
 proj_expr:
-  PROJ LP constant COMMA constant RP tuple_expr     {Project ((extract_int $3, extract_int $5),$7)}
+  PROJ LP constant COMMA constant RP ifte_expr     {Project ((extract_int $3, extract_int $5),$7)}
   | tuple_expr                                      {$1}
 ;
 tuple_expr:
@@ -105,9 +105,12 @@ function_call_expr:
 	function_def_expr LP function_call_expr RP							{FunctionCall($1,$3)}
 	|	ID LP function_call_expr RP														{FunctionCall(Var($1),$3)}
 	| function_def_expr																			{$1}
-	| let_expr																							{$1}
 ;
 
+function_call_expr_main:
+	function_call_expr																			{$1}
+	| let_expr																							{$1}
+;
 function_def_expr:
 BACKSLASH ID COLON type_expr DOT or_expr															{FunctionAbstraction($2,$6,$4)}
 | BACKSLASH ID COLON type_expr DOT LP or_expr RP											{FunctionAbstraction($2,$7,$4)}
@@ -149,7 +152,7 @@ type_expr:
 ;
 
 type_tuple_expr:
-  LP type_expr TIMES type_tuple_sub1_expr RP       {TTuple ($2::$4)}
+  LP type_expr TIMES type_tuple_sub1_expr RP       {Ttuple ($2::$4)}
 ;
 type_tuple_sub1_expr:
   type_expr TIMES type_tuple_sub1_expr             {$1::$3}

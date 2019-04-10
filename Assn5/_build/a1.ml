@@ -4,6 +4,15 @@ exception Invalid_Expression
 
 exception Empty_input
 
+(* The possible types of expressions in the language of expressions *)
+type exptype = Tint | Tunit | Tbool | Ttuple of (exptype list) | Tfunc of (exptype * exptype)
+
+(* The type of value returned by the definitional interpreter. *)
+type value = NumVal of int | BoolVal of bool | TupVal of int * (value list)
+
+(* The language should contain the following types of expressions:  integers and booleans *)
+type answer = Num of bigint | Bool of bool | Tup of int * (answer list)
+
 (* abstract syntax  *)
 type exptree =
   | Var of string
@@ -57,12 +66,12 @@ type exptree =
   (* projecting the i-th component of an expression (which evaluates to an n-tuple, and 1 <= i <= n) *)
   | Project of (int * int) * exptree
   | Let of definition * exptree
-  | FunctionAbstraction of string * exptree
+  | FunctionAbstraction of string * exptree * exptype
   | FunctionCall of exptree * exptree
 
 (* definition *)
 and definition =
-  | Simple of string * exptree
+  | Simple of string * exptree * exptype
   | Sequence of definition list
   | Parallel of definition list
   | Local of definition * definition
@@ -99,15 +108,6 @@ type opcode =
   | SEQCOMPOSE
   | PARCOMPOSE
   | LOCALDEF
-
-  (* The possible types of expressions in the language of expressions *)
-  type exptype = Tint | Tunit | Tbool | Ttuple of (exptype list) | Tfunc of (exptype * exptype)
-
-  (* The type of value returned by the definitional interpreter. *)
-  type value = NumVal of int | BoolVal of bool | TupVal of int * (value list)
-
-  (* The language should contain the following types of expressions:  integers and booleans *)
-  type answer = Num of bigint | Bool of bool | Tup of int * (answer list)
 
 exception Zero_exp_zero_error
 
