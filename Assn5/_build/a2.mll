@@ -60,6 +60,7 @@
    |		'.'											{DOT}
    |		"def"										{DEF}
    |    ';'                     {SEMICOLON}
+	 |		':'											{COLON}
    |		"||"										{PARALLEL}
    |		"local"									{LOCAL}
    |    identifiers as x        {ID (x)}

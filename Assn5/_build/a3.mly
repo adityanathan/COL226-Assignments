@@ -10,7 +10,7 @@
 /* Tokens are defined below.  */
 %token COMMA TILDA LP RP IF THEN ELSE FI DELIMITER EOF EQ GT
 LT ABS EXP DIV REM TIMES PLUS MINUS DISJ CONJ NOT PROJ
-LET IN END BACKSLASH DOT DEF SEMICOLON PARALLEL LOCAL EOF
+LET IN END BACKSLASH DOT DEF SEMICOLON PARALLEL LOCAL EOF COLON
 
 %token <int> INT
 %token <bool> BOOL
@@ -37,8 +37,8 @@ and_expr:
 ;
 
 not_expr:
-  NOT comparison_expr                             {Not ($2)}
-  | NOT not_expr                                    {Not ($2)}
+  /* NOT comparison_expr                             {Not ($2)} */
+  | NOT not_expr                                  {Not ($2)}
   | comparison_expr                               {$1}
 ;
 
@@ -68,13 +68,13 @@ div_mult_rem_expr:
     | abs_expr                                      {$1}
 ; */
 abs_expr:
-  ABS unary_minus_expr                            {Abs ($2)}
+  /* ABS unary_minus_expr                            {Abs ($2)} */
   | ABS abs_expr                                  {Abs ($2)}
   | unary_minus_expr                              {$1}
 ;
 
 unary_minus_expr:
-  TILDA ifte_expr                                 {Negative($2)}
+  /* TILDA ifte_expr                                 {Negative($2)} */
   | TILDA abs_expr                                {Negative($2)}
   | ifte_expr                                     {$1}
 ;
@@ -97,7 +97,7 @@ tuple_sub1_expr:
 ;
 tuple_sub2_expr:
   or_expr                                           {$1}
-  | function_call_expr                                      {$1}
+  /* | function_call_expr                                      {$1} */
 ;
 
 function_def_expr:
