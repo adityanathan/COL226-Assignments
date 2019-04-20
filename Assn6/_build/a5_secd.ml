@@ -36,7 +36,7 @@ and definition =
 
 and answer =
   | IntVal of int
-  | Bool of bool
+  | BoolVal of bool
   | Tup of (int * answer list)
   | CL of string * opcode list * environment
 
@@ -127,7 +127,7 @@ let rec drop l n =
 
 let get_int (a : answer) = match a with IntVal e1 -> e1
 
-let get_bool (a : answer) = match a with Bool e1 -> e1
+let get_bool (a : answer) = match a with BoolVal e1 -> e1
 
 let rec find_variable str env : answer =
   match env with
@@ -172,7 +172,7 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       | _ -> raise Invalid_expression )
   | LOOKUP x :: cmd -> secd ((find_variable x env) :: stck) env cmd dump
   | INT x :: cmd -> secd (IntVal x :: stck) env cmd dump
-  | BOOL x :: cmd -> secd (Bool x :: stck) env cmd dump
+  | BOOL x :: cmd -> secd (BoolVal x :: stck) env cmd dump
   | PLUS :: cmd -> (
       let v1 = List.hd stck in
       let v2 = List.hd (List.tl stck) in
@@ -194,22 +194,22 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       let v2 = List.hd (List.tl stck) in
       let stck_tail = List.tl (List.tl stck) in
       match (v1, v2) with
-      | Bool op1, Bool op2 ->
-          secd (Bool (op1 && op2) :: stck_tail) env cmd dump
+      | BoolVal op1, BoolVal op2 ->
+          secd (BoolVal (op1 && op2) :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
   | OR :: cmd -> (
       let v1 = List.hd stck in
       let v2 = List.hd (List.tl stck) in
       let stck_tail = List.tl (List.tl stck) in
       match (v1, v2) with
-      | Bool op1, Bool op2 ->
-          secd (Bool (op1 || op2) :: stck_tail) env cmd dump
+      | BoolVal op1, BoolVal op2 ->
+          secd (BoolVal (op1 || op2) :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
   | CMP :: cmd -> (
       let v1 = List.hd stck in
       let stck_tail = List.tl stck in
       match v1 with
-      | IntVal op1 -> secd (Bool (op1 > 0) :: stck_tail) env cmd dump
+      | IntVal op1 -> secd (BoolVal (op1 > 0) :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
   | IFTE :: cmd -> (
       let v1 = List.hd stck in
@@ -217,7 +217,7 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       let v3 = List.hd (List.tl (List.tl stck)) in
       let stck_tail = List.tl (List.tl (List.tl stck)) in
       match (v1, v2, v3) with
-      | Bool op1, op2, op3 ->
+      | (BoolVal op1), op2, op3 ->
           if op1 then secd (op2 :: stck_tail) env cmd dump
           else secd (op3 :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
@@ -266,7 +266,7 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       let stck_tail = List.tl (List.tl stck) in
       match (v1, v2) with
       | IntVal op1, IntVal op2 ->
-          secd (Bool (op1 = op2) :: stck_tail) env cmd dump
+          secd (BoolVal (op1 = op2) :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
   | GTE :: cmd -> (
       let v1 = List.hd stck in
@@ -274,7 +274,7 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       let stck_tail = List.tl (List.tl stck) in
       match (v1, v2) with
       | IntVal op1, IntVal op2 ->
-          secd (Bool (op1 >= op2) :: stck_tail) env cmd dump
+          secd (BoolVal (op1 >= op2) :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
   | LTE :: cmd -> (
       let v1 = List.hd stck in
@@ -282,7 +282,7 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       let stck_tail = List.tl (List.tl stck) in
       match (v1, v2) with
       | IntVal op1, IntVal op2 ->
-          secd (Bool (op1 <= op2) :: stck_tail) env cmd dump
+          secd (BoolVal (op1 <= op2) :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
   | GT :: cmd -> (
       let v1 = List.hd stck in
@@ -290,7 +290,7 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       let stck_tail = List.tl (List.tl stck) in
       match (v1, v2) with
       | IntVal op1, IntVal op2 ->
-          secd (Bool (op1 > op2) :: stck_tail) env cmd dump
+          secd (BoolVal (op1 > op2) :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
   | LT :: cmd -> (
       let v1 = List.hd stck in
@@ -298,7 +298,7 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       let stck_tail = List.tl (List.tl stck) in
       match (v1, v2) with
       | IntVal op1, IntVal op2 ->
-          secd (Bool (op1 < op2) :: stck_tail) env cmd dump
+          secd (BoolVal (op1 < op2) :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
   | LPAREN :: cmd ->
       let paren_op = find_paren cmd [] in
@@ -308,7 +308,7 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       let v1 = List.hd stck in
       let stck_tail = List.tl stck in
       match v1 with
-      | Bool op1 -> secd (Bool (not op1) :: stck_tail) env cmd dump
+      | BoolVal op1 -> secd (BoolVal (not op1) :: stck_tail) env cmd dump
       | _ -> raise Invalid_expression )
   | TUPLE e1 :: cmd ->
       secd (Tup (e1, tuple_stack_calc stck e1 []) :: drop stck e1) env cmd dump

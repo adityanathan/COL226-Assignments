@@ -1,0 +1,30 @@
+let deleteThis1 s = A3.exp_parser A2.read (Lexing.from_string s) ;;
+let infer1 s gamma = match (inferType (A3.exp_parser A2.read (Lexing.from_string s)) gamma) with 
+                        |(a, b) -> a;;
+let infer2 s gamma = (inferType (A3.exp_parser A2.read (Lexing.from_string s)) gamma);;
+
+let km s tb= krivine (Clos((A3.exp_parser A2.read (Lexing.from_string s)), tb)) [];;
+
+let compiler s = compile (A3.exp_parser A2.read (Lexing.from_string s));;
+
+let machine s g = secd [] g (compiler s) [] ;;
+
+let krivine_machine s small_gamma capital_gamma =     (
+                                                        match (infer1 s capital_gamma) with
+                                                            | Tint                 ->     print_string " Type of the expression: Tint\n"
+                                                            | Tbool             ->  print_string " Type of the expression: Tbool\n"
+                                                            | Tunit(s)            ->  print_string (Printf.sprintf " Type of the expression: Tunit(%s)\n" s)
+                                                            | Tfunc(et1, et2)     ->     print_string " Type of the expression: Tfunc(something)\n"
+                                                    );
+                                                    km s small_gamma;;
+let secd_machine s small_gamma capital_gamma     =     (
+                                                        match (infer1 s capital_gamma) with
+                                                            | Tint                 ->     print_string " Type of the expression: Tint\n"
+                                                            | Tbool             ->  print_string " Type of the expression: Tbool\n"
+                                                            | Tunit(s)            ->  print_string (Printf.sprintf " Type of the expression: Tunit(%s)\n" s)
+                                                            | Tfunc(et1, et2)     ->     print_string " Type of the expression: Tfunc(something)\n"
+                                                    );
+                                                    machine s small_gamma;;
+
+let krivine_mac s small_gamma capital_gamma =     km s small_gamma;;
+let secd_mac s small_gamma capital_gamma     =     machine s small_gamma;;
