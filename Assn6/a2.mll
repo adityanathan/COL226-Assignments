@@ -67,6 +67,7 @@
 	 |		"->"										{ARROW}
    |		"||"										{PARALLEL}
    |		"local"									{LOCAL}
+	 |		"cmp"										{CMP}
    |    identifiers as x        {ID (x)}
    |    eof                     {EOF}
    |    whitespace              {read lexbuf}

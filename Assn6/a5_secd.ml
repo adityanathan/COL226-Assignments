@@ -1,49 +1,15 @@
-type expr =
-  | V of string
-  | Lambda of (string * expr * exptype)
-  | App of (expr * expr)
-  | Plus of (expr * expr)
-  | Mult of (expr * expr)
-  | And of (expr * expr)
-  | Or of (expr * expr)
-  | Bool of bool
-  | Integer of int
-  | Cmp of expr
-  | If_Then_Else of (expr * expr * expr)
-  (*  *)
-  | Abs of expr
-  | Negative of expr
-  | Not of expr
-  | Sub of expr * expr
-  | Div of expr * expr
-  | Rem of expr * expr
-  | Equals of expr * expr
-  | GreaterTE of expr * expr
-  | LessTE of expr * expr
-  | GreaterT of expr * expr
-  | LessT of expr * expr
-  | InParen of expr
-  | Tuple of int * expr list
-  | Project of (int * int) * expr
-	| Let of definition * expr
+open A5_type;;
+open A4;;
 
-	(* definition *)
-and definition =
-  | Simple of string * expr * exptype
-  | Sequence of definition list
-  | Parallel of definition list
-  | Local of definition * definition
+exception Not_implemented
 
-and answer =
+type answer =
   | IntVal of int
   | BoolVal of bool
   | Tup of (int * answer list)
   | CL of string * opcode list * environment
 
 and environment = (string * answer) list
-
-and exptype = Tint | Tunit | Tbool | Ttuple of (exptype list) | Tfunc of (exptype * exptype)
-
 
 and opcode =
   | LOOKUP of string
@@ -103,6 +69,7 @@ and compile e =
   | Cmp a -> compile a @ [CMP]
   | If_Then_Else (a, b, c) -> compile c @ compile b @ compile a @ [IFTE]
   (*  *)
+	| RecursiveLambda (f_name, a, b, c, d) -> raise Not_implemented
   | Equals (e1, e2) -> compile e1 @ compile e2 @ [EQS]
   | GreaterTE (e1, e2) -> compile e1 @ compile e2 @ [GTE]
   | LessTE (e1, e2) -> compile e1 @ compile e2 @ [LTE]
@@ -147,7 +114,7 @@ let rec proj_stack_calc tupl n =
 let rec find_paren list accumulator =
   match list with
   | RPAREN :: e -> accumulator
-  | a :: b -> find_paren b accumulator @ [a]
+  | a :: b -> find_paren b (accumulator @ [a])
   | [] -> raise Invalid_expression
 
 let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (dump : ((answer list) * environment * (opcode list)) list) : answer =
@@ -164,6 +131,13 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
       | CL (a, b, c) ->
           secd [] ((a, param) :: c) b ((stck_tail, env, cmd) :: dump)
       | _ -> raise Invalid_expression )
+	(* | RECURSIVE_CLOS(f_name, a, l) :: cmd -> (
+		match a with
+		| V n -> secd (CL (n, l, env)::stck) ((f_name, CL(n, l, env))::env) cmd dump
+		| _ -> raise Invalid_expression
+		(* Here I am binding the function name to the body in the global space.
+		So in this case a later function call outside the function body will also work.*)
+		) *)
   | RET :: cmd -> (
       let func_ans = List.hd stck in
       let dump_head = List.hd dump in
@@ -315,7 +289,14 @@ let rec secd (stck : answer list) (env : environment) (op_list : opcode list) (d
   | PROJ (e1, e2) :: cmd ->
       secd (proj_stack_calc (List.hd stck) e1 :: drop stck 1) env cmd dump
   | [] -> List.hd stck
+	| _ -> raise Invalid_expression
 
-let secd_machine e rho = secd [] rho (compile e) []
+exception Type_error
+let secd_machine e rho type_rho= try
+let dummy = type_infer type_rho e in
+secd [] rho (compile e) []
+with
+Type_infer_invalid -> raise Type_error
+
 
 (* make sure secd_mc doesn't look below stack line *)

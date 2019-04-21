@@ -1,5 +1,5 @@
 %{
-    open A5_secd
+    open A5_type
     exception Tuple_value_not_an_integer
     exception Empty_Expression
     let extract_int x = match x with
@@ -11,15 +11,14 @@
 %token COMMA TILDA LP RP IF THEN ELSE FI DELIMITER EOF EQ GT
 LT ABS EXP DIV REM TIMES PLUS MINUS DISJ CONJ NOT PROJ
 LET IN END BACKSLASH DOT DEF SEMICOLON PARALLEL LOCAL EOF COLON TINT TBOOL TUNIT
-ARROW
+ARROW CMP
 
 %token <int> INT
 %token <bool> BOOL
 %token <string> ID
 
-%start def_parser exp_parser
-%type <A5_secd.definition> def_parser /* Returns definitions */
-%type <A5_secd.expr> exp_parser /* Returns expression */
+%start exp_parser
+%type <A5_type.expr> exp_parser /* Returns expression */
 %%
 
 exp_parser:
@@ -44,7 +43,8 @@ not_expr:
 ;
 
 comparison_expr:
-  comparison_expr GT EQ add_sub_expr              {GreaterTE ($1, $4)}
+	CMP add_sub_expr																{Cmp($2)}
+  | comparison_expr GT EQ add_sub_expr            {GreaterTE ($1, $4)}
   | comparison_expr LT EQ add_sub_expr            {LessTE ($1, $4)}
   | comparison_expr GT add_sub_expr               {GreaterT ($1, $3)}
   | comparison_expr LT add_sub_expr               {LessT ($1, $3)}
@@ -69,13 +69,11 @@ div_mult_rem_expr:
     | abs_expr                                      {$1}
 ; */
 abs_expr:
-  /* ABS unary_minus_expr                            {Abs ($2)} */
   | ABS abs_expr                                  {Abs ($2)}
   | unary_minus_expr                              {$1}
 ;
 
 unary_minus_expr:
-  /* TILDA ifte_expr                                 {Negative($2)} */
   | TILDA abs_expr                                {Negative($2)}
   | ifte_expr                                     {$1}
 ;
@@ -89,33 +87,26 @@ proj_expr:
   | tuple_expr                                      {$1}
 ;
 tuple_expr:
-  LP tuple_sub2_expr COMMA tuple_sub1_expr RP       {Tuple (((List.length $4)+1), ($2::$4))}
+  LP or_expr COMMA tuple_sub1_expr RP       {Tuple (((List.length $4)+1), ($2::$4))}
   | function_call_expr                                      {$1}
 ;
 tuple_sub1_expr:
-  tuple_sub2_expr COMMA tuple_sub1_expr             {$1::$3}
-  | tuple_sub2_expr                                 {[$1]}
-;
-tuple_sub2_expr:
-  or_expr                                           {$1}
-  /* | function_call_expr                                      {$1} */
+  or_expr COMMA tuple_sub1_expr             {$1::$3}
+  | or_expr                                 {[$1]}
 ;
 
 function_call_expr:
-	function_def_expr LP function_call_expr RP							{App($1,$3)}
-	|	ID LP function_call_expr RP														{App(V($1),$3)}
+	function_def_expr LP or_expr RP													{App($1,$3)}
+	|	ID LP or_expr RP																			{App(V($1),$3)}
 	| function_def_expr																			{$1}
-	| let_expr																							{$1}
+	| paren_expr																							{$1}
 ;
 
 function_def_expr:
-BACKSLASH ID COLON type_expr DOT or_expr															{Lambda($2,$6,$4)}
-| BACKSLASH ID COLON type_expr DOT LP or_expr RP											{Lambda($2,$7,$4)}
-;
-
-let_expr:
-	LET def_parser IN exp_parser END												{Let($2,$4)}
-	| paren_expr																								{$1}
+BACKSLASH ID COLON type_expr DOT or_expr																											{Lambda($2,$6,$4)}
+| LP BACKSLASH ID COLON type_expr DOT or_expr RP																							{Lambda($3,$7,$5)}
+| BACKSLASH LP ID COMMA ID RP COLON LP type_expr COMMA type_expr RP DOT or_expr								{RecursiveLambda($3,$5,$14,$9,$11)}
+| LP BACKSLASH LP ID COMMA ID RP COLON LP type_expr COMMA type_expr RP DOT or_expr RP				{RecursiveLambda($4,$6,$15,$10,$12)}
 ;
 
 paren_expr:
@@ -127,17 +118,6 @@ constant:
     ID                                              {V ($1)}
     | INT                                           {Integer ($1)}
     | BOOL                                          {Bool ($1)}
-;
-
-def_parser:
-	def_unit SEMICOLON def_parser											{Sequence([$1]@[$3])}
-	|	def_unit PARALLEL def_parser										{Parallel([$1]@[$3])}
-	|	LOCAL def_parser IN def_parser END							{Local($2,$4)}
-	|	def_unit																				{$1}
-;
-
-def_unit:
-	DEF ID COLON type_expr EQ exp_parser 												{ Simple($2, $6, $4) }
 ;
 
 type_expr:

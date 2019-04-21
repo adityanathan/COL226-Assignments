@@ -1,53 +1,13 @@
-type expr =
-  | V of string
-  | Lambda of (string * expr * exptype)
-  | App of (expr * expr)
-  | Plus of (expr * expr)
-  | Mult of (expr * expr)
-  | And of (expr * expr)
-  | Or of (expr * expr)
-  | Bool of bool
-  | Integer of int
-  | Cmp of expr
-  | If_Then_Else of (expr * expr * expr)
-  (*  *)
-  | Abs of expr
-  | Negative of expr
-  | Not of expr
-  | Sub of expr * expr
-  | Div of expr * expr
-  | Rem of expr * expr
-  | Equals of expr * expr
-  | GreaterTE of expr * expr
-  | LessTE of expr * expr
-  | GreaterT of expr * expr
-  | LessT of expr * expr
-  | InParen of expr
-  | Tuple of int * expr list
-  | Project of (int * int) * expr
-  | Let of definition * expr
+open A5_type;;
+open A4;;
 
-(* definition *)
-and definition =
-  | Simple of string * expr * exptype
-  | Sequence of definition list
-  | Parallel of definition list
-  | Local of definition * definition
-
-and answer =
+type answer =
   | IntVal of int
   | BoolVal of bool
   | CL of expr * environment
   | Tup of int * answer list
 
 and environment = (string * answer) list
-
-and exptype =
-  | Tint
-  | Tunit
-  | Tbool
-  | Ttuple of exptype list
-  | Tfunc of (exptype * exptype)
 
 exception Illegal_Tuple
 
@@ -147,12 +107,22 @@ and krv_mc (cl : answer) (stck : answer list) =
   | CL (Abs a, env) -> (
     match krv_mc (CL (a, env)) stck with IntVal v1 ->
       if v1 > 0 then IntVal v1 else IntVal (-v1) )
+	| CL (RecursiveLambda (f_name, param, f_body, func_type, func_out_type), env) -> (
+		match f_name, param with
+		| ((f_n: string),(x : string)) ->
+				krv_mc (CL (f_body, (param, List.hd stck) :: (f_name, cl) :: env)) (List.tl stck)
+		| _ -> raise Invalid_expression )
+	| _ -> raise Invalid_expression
 
 let rec make_closure_list binding =
   match binding with
   | (str, b) :: tl -> (str, CL (b, [])) :: make_closure_list tl
   | [] -> []
 
-let krivine_machine e rho = krv_mc (CL (e, make_closure_list rho)) []
-
 (* accomodate change of closure to type answer *)
+exception Type_error
+let krivine_machine e rho type_rho =
+try
+let dummy = type_infer type_rho e in krv_mc (CL (e, make_closure_list rho)) []
+with
+Type_infer_invalid -> raise Type_error
