@@ -1,0 +1,110 @@
+type procedure_type = Proc of string * int * (string*int list) * (string list) * (string list) * (string list)
+
+let procedure_database = [Proc("Main", 0, [], ["a";"b";"c"], [], ["P";"Q";"Main"]);
+                          Proc("P", 1, [("b",0) ; ("c",0)], ["x";"y";"z";"a"], ["x";"y"], ["P";"Q";"R";"S"]);
+                          Proc("Q", 1, [("a",0) ; ("c",0)], ["z";"w";"x";"b"], ["z";"w"], ["P";"Q";"T";"U"]);
+                          Proc("R", 2, [("a",1);("c",0);("x",1);("y",1);("z",1)], ["w";"i";"j";"b"], ["w";"i"], ["P";"Q";"V";"R";"S"]);
+                          Proc("S", 2, [("a",1);("b",0);("x",1);("y",1);("z",1)], ["c";"k";"m";"n"], ["c";"k"], ["P";"Q";"R";"S"]);
+                          Proc("T", 2, [("b",1);("c",0);("w",1);("x",1);("z",1)], ["a";"y";"i";"j"], ["a";"y"], ["P";"Q";"W";"T";"U"]);
+                          Proc("U", 2, [("a",0);("b",1);("w",1);("x",1)], ["z";"c";"p";"g"], ["c";"z"], ["P";"Q";"T";"U"]);
+                          Proc("V", 3, [("a",1);("b",2);("i",2);("j",2);("w",2);("x",1);("y",1);("z",1)], ["m";"n";"c"], ["m";"n"], ["P";"Q";"V";"R";"S"]);
+                          Proc("W", 3, [("a",2);("b",1);("c",0);("f",2);("i",2);("w",1);("x",1);("y",2);("z",1)], ["m";"p";"j";"h"], ["m";"p"], ["P";"Q";"W";"T";"U"])]
+
+type var_answer = Num of int | Undefined
+
+type assn_type = Num of int | Str of string
+
+type frame = procedure_type * ((string * var_answer) list)
+
+type frame_pointer = Null | Pointer of frame ref
+
+type command = CALL of string*(assn_type list) | DISPLAY | SET of (string * assn_type) | RETURN | EXIT
+
+exception Attempt_to_dereference_null_pointer
+exception Attempt_to_assign_null_pointer
+
+let ( !^ ) = function
+    | Null -> raise Attempt_to_dereference_null_pointer
+    | Pointer r -> !r;;
+
+let ( ^:= ) p v =
+    match p with
+    | Null -> raise Attempt_to_assign_null_pointer
+    | Pointer r -> r := v;;
+
+let new_pointer x = Pointer (ref x);;
+
+let call_stack : (frame_pointer list) = [new_pointer ((List.hd procedure_database),[("a",Undefined);("b",Undefined);("c",Undefined)])]
+
+let dump : (frame_pointer list) = []
+
+let display_reg : (frame_pointer list) = []
+
+exception Procedure_not_found
+exception Variable_not_found
+exception Insufficient_Parameter_values
+exception Index_out_of_bounds
+let rec find_proc x l = match l with
+  | Proc(a,b,c,d,e,f)::tl -> if a = x then Proc(a,b,c,d,e,f) else find_proc x tl
+  | [] -> raise Procedure_not_found
+
+let rec extract_var_from_table a b = match b with
+  | (c,d)::tl -> if a=c then d else extract_var_from_table a tl
+  | [] -> raise Variable_not_found
+
+let rec replace_var_from_table name rep_val tabl = match tabl with
+  | (c,d)::tl -> if name=c then [(name,rep_val)]@tl else extract_var_from_table name rep_val tl
+  | [] -> raise Variable_not_found
+
+let rec match_global_var a = match a with
+    (c,d)::tl -> (match !(List.nth (display_reg) d) with (_,table) -> (c,extract_var_from_table c table)::match_global_var tl)
+  | [] -> []
+
+let rec match_local_var d = match d with
+    hd::tl -> (hd,Undefined)::match_local_var tl
+  | [] -> []
+
+let rec match_param_var name value table = if List.length name = List.length value then
+    (match (name,value) with
+       (hd1::tl1,Num(hd2)::tl2) -> (hd1,hd2)::(match_param_var tl1 tl2)
+     | (hd1::tl1,Str(hd2)::tl2) -> (hd1,extract_var_from_table hd2 table)::(match_param_var tl1 tl2)
+     | ([],[]) -> [])
+  else raise Insufficient_Parameter_values
+
+let rec replace_elem e l count = if List.length l >= count then
+    (match l with hd::tl -> if count = 0 then [e]@tl else hd::replace_elem e tl count-1)
+  else raise Index_out_of_bounds
+
+let call_update callee param_list = let callee_pr = find_proc callee procedure_database in
+  let caller_pr_var_table = (match List.hd call_stack with (a,b) -> b)
+  match callee_pr with
+  | Proc(a,b,c,d,e,f) -> (let a = new_pointer (callee_pr, (match_global_var c)@(match_param_var e param_list caller_pr_var_table)@(match_local_var d)) in
+                          let call_stack = a::call_stack in
+                          let dump = (List.nth display_reg b)::dump in
+                          let display_reg = replace_elem a display_reg b in (call_stack,dump,display_reg))
+
+let rec print_tabl t = match t with
+    (name, Num(value))::tl -> Printf.print "%s = %i" name value; print_tabl tl
+  | [] -> Printf.printf "\n"
+
+let rec print_frame a = match a with
+    (Proc(a,b,c,d,e,f),tabl) -> Printf.print "Name: %s, Level: %i" a b; Printf.print "List of accessible variables: " print_map tabl
+
+let rec print_stack c_stack = match c_stack with
+  | hd::tl -> print_frame !hd; print_stack tl;
+  | [] -> Printf.printf "\n"
+
+
+let rec simulation call_stack dump display_reg=
+  Printf.printf "Enter your command:\n";
+  let s = read_line () in
+  let command = A3.parser A2.read (Lexing.from_string s) in
+  match command with
+    CALL (a,b) -> call_update a b
+  | DISPLAY -> print_stack call_stack; print_stack disp_reg
+  | SET(var_name, value) -> let current_pr = List.hd call_stack in
+    (match current_pr with
+       (Proc(a,b,c,d,e,f),tabl) -> simulation (Proc(a,b,c,d,e,f),replace_var_from_table var_name value tabl) dump display_reg)
+  | RETURN -> (match call_stack,dump,display_reg with
+        (Proc(a,b,c,d,e,f),_)::tl, top::bot, disp -> let in simulation tl bot (replace_elem top display_reg b)
+  | EXIT -> Printf.printf "Exited Simulation.\n"

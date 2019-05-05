@@ -1,0 +1,46 @@
+%{
+    open A5_type
+    exception Tuple_value_not_an_integer
+    exception Empty_Expression
+    let extract_int x = match x with
+    |  Integer (a) -> a
+    | _     -> raise Tuple_value_not_an_integer
+%}
+
+{CALL}
+|    "display"               {DISPLAY}
+|    "return"                {RETURN}
+|    "exit"                  {EXIT}
+|    ','                     {COMMA}
+|    integer_constant as x   {remove_sign x}
+|    '('                     {LP}
+|    ')'                     {RP}
+|    '='                     {EQ}
+|		':'											{COLON}
+|    identifiers as x        {ID (x)}
+|    eof                     {EOF}
+
+
+/* Tokens are defined below.  */
+%token CALL DISPLAY RETURN EXIT COMMA LP RP EQ COLON EOF
+
+%token <int> INT
+%token <string> ID
+
+%start parser
+%type <A7.command> parser /* Returns expression */
+%%
+
+parser:
+	CALL ID LP int_list RP                                  { CALL($2,$4) }
+  | DISPLAY                                               { DISPLAY }
+  | RETURN                                                { RETURN }
+  | EXIT                                                  { EXIT }
+  | ID COLON EQ INT                                       { SET ($1, Num $4)}
+  | ID COLON EQ ID                                        { SET ($1, Str $4) }
+  | EOF                                           				{ raise Empty_Expression }
+;
+
+int_list:
+  INT int_list                                            {$1::$2}
+  | INT                                                   {[$1]}
