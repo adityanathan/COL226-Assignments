@@ -38,6 +38,7 @@ exception Procedure_not_found
 exception Variable_not_found
 exception Insufficient_Parameter_values
 exception Index_out_of_bounds
+
 let rec find_proc x l = match l with
   | Proc(a,b,c,d,e,f)::tl -> if a = x then Proc(a,b,c,d,e,f) else find_proc x tl
   | [] -> raise Procedure_not_found
@@ -46,9 +47,18 @@ let rec extract_var_from_table a b = match b with
   | (c,d)::tl -> if a=c then d else extract_var_from_table a tl
   | [] -> raise Variable_not_found
 
-let rec replace_var_from_table name rep_val tabl = match tabl with
-  | (c,d)::tl -> if name=c then [(name,rep_val)]@tl else (c,d)::replace_var_from_table name rep_val tl
-  | [] -> raise Variable_not_found
+let rec substitute_variable a b = match a with
+  | Num(f) -> Numa(f)
+  | Str(f) -> extract_var_from_table f b
+
+let rec replace_global_table global_list disp_reg name rep_val = match (extract_var_from_table name global_list) with
+  | level -> (match !^(List.nth (disp_reg) level) with
+                      (Proc(a,b,c,d,e,f),tabl) ->
+                      let _ = ((List.nth (disp_reg) level) ^:= (Proc(a,b,c,d,e,f),replace_var_from_table name rep_val tabl c disp_reg)) in ())
+
+and replace_var_from_table name rep_val tabl global_list disp_reg= match tabl with
+  | (c,d)::tl -> if name=c then [(name,rep_val)]@tl else (c,d)::(replace_var_from_table name rep_val tl global_list disp_reg)
+  | [] -> let _ = (replace_global_table global_list disp_reg name rep_val) in tabl
 
 let rec match_global_var a display_reg = match a with
     (c,d)::tl -> (match !^(List.nth (display_reg) d) with (_,table) -> (c,extract_var_from_table c table)::match_global_var tl display_reg)
@@ -78,7 +88,7 @@ let call_update callee param_list call_stack display_reg du= let callee_pr = fin
   let caller_pr_var_table = (match !^(List.hd call_stack) with (a,b) -> b) in
   let caller_proc_access = (match !^(List.hd call_stack) with (Proc(_,_,_,_,_,t),b) -> t) in
   match callee_pr with
-    | Proc(a,b,c,d,e,f) -> if exist a caller_proc_access then (let a = new_pointer (callee_pr, (match_global_var c display_reg)@(match_param_var e param_list caller_pr_var_table)@(match_local_var d)) in
+    | Proc(a,b,c,d,e,f) -> if exist a caller_proc_access then (let a = new_pointer (callee_pr, (match_param_var e param_list caller_pr_var_table)@(match_local_var d)) in
                           let call_stack = a::call_stack in
                           let disp = replace_elem (List.hd call_stack) display_reg b in
                           let dump = (List.nth display_reg b)::du in
@@ -86,26 +96,33 @@ let call_update callee param_list call_stack display_reg du= let callee_pr = fin
       else raise Procedure_not_found
 
 let rec print_tabl t = match t with
-  |  (name, Numa(value))::tl -> Printf.printf "%s = %i, " name value; print_tabl tl
-  |  (name, Undefined)::tl -> Printf.printf "%s = Undefined, " name; print_tabl tl
+  |  (name, Numa(value))::tl -> Printf.printf "%s = %i, " name value; print_tabl tl;
+  |  (name, Undefined)::tl -> Printf.printf "%s = Undefined, " name; print_tabl tl;
   | [] -> Printf.printf "\n";
-    ;;
+;;
 
-let rec print_frame a = match a with
-    (Proc(a,b,c,d,e,f),tabl) ->Printf.printf "Frame: \n"; Printf.printf "Name: %s, Level: %i, " a b; Printf.printf "\n"; Printf.printf "List of accessible variables: "; Printf.printf "\n"; print_tabl tabl;
+let rec print_proc t = match t with
+  | hd::tl -> Printf.printf "%s, " hd; print_proc tl;
+  | [] -> Printf.printf "\n"; Printf.printf "\n";
+;;
+let rec print_frame a displ_reg = match a with
+    (Proc(a,b,c,d,e,f),tabl) -> Printf.printf "Frame: \n"; Printf.printf "Name: %s, Level: %i, " a b; Printf.printf "\n";
+    Printf.printf "List of accessible variables: "; Printf.printf "\n";
+    print_tabl tabl; print_tabl (match_global_var c displ_reg);
+    Printf.printf "List of accessible procedures: "; print_proc f;
     ;;
 
 let rec print_frame_disp a = match a with
     (Proc(a,b,c,d,e,f),tabl) ->Printf.printf "Display Register: \n"; Printf.printf "Name: %s, Level: %i, " a b; Printf.printf "\n";
     ;;
 
-let rec print_stack c_stack = try
+let rec print_stack c_stack disp_reg = try
     match c_stack with
-  | hd::tl -> print_frame !^hd; print_stack tl;
+  | hd::tl -> print_frame !^hd disp_reg; print_stack tl disp_reg;
   | [] -> Printf.printf "\n";
 with
-Attempt_to_dereference_null_pointer -> (match c_stack with hd::tail -> print_stack tail
-                                                                             | [] -> Printf.printf "\n")
+Attempt_to_dereference_null_pointer -> (match c_stack with hd::tail -> print_stack tail disp_reg
+                                                          | [] -> Printf.printf "\n")
 
 let rec print_disp di_reg = try
     match di_reg with

@@ -1,0 +1,21 @@
+a := 100
+b := 99
+c := 98
+call P(a, 3)
+a := 3
+b := 2
+c := 3
+return                              
+call P(11, 12)
+call R(9, 10)
+b := 23
+c := 24
+call P(99, 100)
+call R(199, 200)
+c := 57
+z := 87
+return
+return
+return
+return
+return

@@ -25,4 +25,6 @@ parser:
 
 int_list:
   INT COMMA int_list                                      {Num($1)::$3}
+  | ID COMMA int_list                                     {Str($1)::$3}
+  | ID                                                    {[Str($1)]}
   | INT                                                   {[Num($1)]}
