@@ -4,6 +4,15 @@ exception Invalid_Expression
 
 exception Empty_input
 
+(* The possible types of expressions in the language of expressions *)
+type exptype = Tint | Tunit | Tbool | Ttuple of (exptype list) | Tfunc of (exptype * exptype)
+
+(* The type of value returned by the definitional interpreter. *)
+type value = NumVal of int | BoolVal of bool | TupVal of int * (value list)
+
+(* The language should contain the following types of expressions:  integers and booleans *)
+type answer = Num of bigint | Bool of bool | Tup of int * (answer list)
+
 (* abstract syntax  *)
 type exptree =
   | Var of string
@@ -56,6 +65,16 @@ type exptree =
   | Tuple of int * exptree list
   (* projecting the i-th component of an expression (which evaluates to an n-tuple, and 1 <= i <= n) *)
   | Project of (int * int) * exptree
+  | Let of definition * exptree
+  | FunctionAbstraction of string * exptree * exptype
+  | FunctionCall of exptree * exptree
+
+(* definition *)
+and definition =
+  | Simple of string * exptree * exptype
+  | Sequence of definition list
+  | Parallel of definition list
+  | Local of definition * definition
 
 (* unary operators on integers *)
 
@@ -82,13 +101,13 @@ type opcode =
   | IFTE
   | TUPLE of int
   | PROJ of int * int
-
-(* type special_ret_type = Int of int | Bool of bool *)
-type answer = Num of bigint | Bool of bool | Tup of int * answer list
-
-type value = NumVal of int | BoolVal of bool | TupVal of int * value list
-
-(* type integer_answer = Inum of int | Bool of bool | Tup of int * answer list *)
+  | LET
+  | FABS
+  | FCALL
+  | SIMPLEDEF
+  | SEQCOMPOSE
+  | PARCOMPOSE
+  | LOCALDEF
 
 exception Zero_exp_zero_error
 
@@ -114,12 +133,11 @@ let rec eval_tuple acc list rho =
   | [] -> acc
   | hd :: tl -> eval_tuple (acc @ [eval hd rho]) tl rho
 
-and eval_projection a b list rho =
-  if b = List.length list && a <= b && a >= 1 then
-    match list with
+and eval_projection a b l rho =
+  if b = List.length l && a <= b && a >= 1 then
+    match l with
     | [] -> raise Projection_Index_Out_of_bounds
-    | hd :: tl ->
-        (if a = 1 then hd else eval_projection (a - 1) (b - 1) tl rho)
+    | hd :: tl -> if a = 1 then hd else eval_projection (a - 1) (b - 1) tl rho
   else if a < 1 || a > b then raise Projection_Index_Out_of_bounds
   else raise Illegal_Tuple
 
@@ -253,8 +271,8 @@ and compile exp =
         if e2 = a && e1 <= e2 && e1 >= 1 then compile e3 @ [PROJ (e1, e2)]
         else if e1 > e2 || e1 < 1 then raise Projection_Index_Out_of_bounds
         else raise Illegal_Tuple
-    | Var (x) -> [VAR x] @ [PROJ (e1, e2)]
-    | InParen (x) -> [PAREN] @ compile x @ [PAREN] @ [PROJ (e1, e2)]
+    | Var x -> [VAR x] @ [PROJ (e1, e2)]
+    | InParen x -> [PAREN] @ compile x @ [PAREN] @ [PROJ (e1, e2)]
     | _ -> raise Illegal_Tuple )
 
 (* | _ -> raise Invalid_Expression *)
@@ -299,7 +317,7 @@ let rec stackmc_prototype (acc : answer list) (op : opcode list) (a : int) rho
   (* try *)
   match op with
   (* DONE :: e -> raise Empty_input *)
-  | VAR (x : string) :: e -> stackmc_prototype ((rho x) :: acc) e a rho
+  | VAR (x : string) :: e -> stackmc_prototype (rho x :: acc) e a rho
   | NCONST (num : bigint) :: e -> stackmc_prototype (Num num :: acc) e a rho
   | BCONST (value : bool) :: e -> stackmc_prototype (Bool value :: acc) e a rho
   | PLUS :: e ->

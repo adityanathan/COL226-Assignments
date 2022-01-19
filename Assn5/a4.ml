@@ -1,4 +1,4 @@
-open A1
+open A5_type
 
 exception Variable_not_found
 
@@ -33,13 +33,14 @@ exception Type_infer_invalid
 
 let rec type_infer g e =
   match e with
-  | N number -> Tint
-  | B value -> Tbool
-  | Var var_name -> find_variable var_name g
-  | Conjunction (e1, e2) ->
+  | Integer number -> Tint
+  | Bool value -> Tbool
+  | V var_name -> find_variable var_name g
+	| Cmp e -> if hastype g e Tint then Tbool else raise Type_infer_invalid
+  | And (e1, e2) ->
       if hastype g e1 Tbool && hastype g e2 Tbool then Tbool
       else raise Type_infer_invalid
-  | Disjunction (e1, e2) ->
+  | Or (e1, e2) ->
       if hastype g e1 Tbool && hastype g e2 Tbool then Tbool
       else raise Type_infer_invalid
   | Equals (e1, e2) ->
@@ -58,26 +59,20 @@ let rec type_infer g e =
       if hastype g e1 Tint && hastype g e2 Tint then Tbool
       else raise Type_infer_invalid
   | InParen e1 -> type_infer g e1
-  | IfThenElse (e1, e2, e3) ->
+  | If_Then_Else (e1, e2, e3) ->
       if hastype g e1 Tbool && hastype g e3 (type_infer g e2) then
         type_infer g e2
       else raise Type_infer_invalid
   | Tuple (e1, e2) ->
       if e1 = List.length e2 then Ttuple (tuple_type_infer g e2)
       else raise Type_infer_invalid
-  (* | Project ((e1, e2), e3) -> (
-    match e3 with
-    | Tuple (a, b) ->
-        if e1 <= e2 && e2 = a then type_infer g (List.hd (drop b (e1 - 1)))
-        else raise Type_infer_invalid
-    | _ -> raise Type_infer_invalid ) *)
   | Project ((e1, e2), e3) -> (
     match type_infer g e3 with
     | Ttuple b ->
         if e1 <= e2 && e2 = List.length b then List.hd (drop b (e1 - 1))
         else raise Type_infer_invalid
     | _ -> raise Type_infer_invalid )
-  | Add (e1, e2) ->
+  | Plus (e1, e2) ->
       if hastype g e1 Tint && hastype g e2 Tint then Tint
       else raise Type_infer_invalid
   | Sub (e1, e2) ->
@@ -95,63 +90,20 @@ let rec type_infer g e =
   | Negative e1 -> if hastype g e1 Tint then Tint else raise Type_infer_invalid
   | Not e1 -> if hastype g e1 Tbool then Tbool else raise Type_infer_invalid
   | Abs e1 -> if hastype g e1 Tint then Tint else raise Type_infer_invalid
-  | Let (d, e) -> type_infer (type_infer_list g d @ g) e
-  | FunctionAbstraction (str, exp, type_explicit) ->
+  | Lambda (str, exp, type_explicit) ->
       Tfunc (type_explicit, type_infer ((str, type_explicit) :: g) exp)
-  | FunctionCall (e1, e2) -> (
+  | App (e1, e2) -> (
     match type_infer g e1 with
     | Tfunc (t1, t2) ->
         if hastype g e2 t1 then t2 else raise Type_infer_invalid
     | _ -> raise Type_infer_invalid )
+	| RecursiveLambda (f_name, param, f_body, param_type, func_type) ->
+			Tfunc (param_type, type_infer ((param, param_type) :: (f_name, Tfunc(param_type,func_type)) :: g) f_body)
 
 and tuple_type_infer g a =
   match a with
   | [] -> []
   | hd :: tl -> type_infer g hd :: tuple_type_infer g tl
-
-and type_infer_list g d =
-  match d with
-  | Simple (e1, e2, t) ->
-      if type_infer g e2 = t then [(e1, t)] else raise Type_infer_invalid
-  | Sequence e1 -> (
-      let e = List.hd e1 in
-      match e with
-      | Simple (a, b, t) ->
-          let temp = (a, t) in
-          if type_infer g b = t then
-            temp :: type_infer_list (temp :: g) (List.hd (List.tl e1))
-          else raise Type_infer_invalid
-      | _ -> raise Type_infer_invalid )
-  | Parallel e1 -> (
-      let e = List.hd e1 in
-      match e with
-      | Simple (a, b, t) ->
-          let temp = (a, t) in
-          if type_infer g b = t then
-            temp :: type_infer_list g (List.hd (List.tl e1))
-          else raise Type_infer_invalid
-      | _ -> raise Type_infer_invalid )
-  | Local (d1, d2) -> type_infer_list (type_infer_list g d1 @ g) d2
-
-(* and type_infer_list g d =
-  match d with
-	| Simple(e1,e2,t) -> t
-  | Sequence e1 -> (
-      let e = List.hd e1 in
-      match e with
-      | Simple (a, b) ->
-          let temp = (a, type_infer g b) in
-          temp :: type_infer_list (temp :: g) (List.hd (List.tl e1))
-      | _ -> raise Type_infer_invalid )
-  | Parallel e1 -> (
-      let e = List.hd e1 in
-      match e with
-      | Simple (a, b) ->
-          let temp = (a, type_infer g b) in
-          temp :: type_infer_list g (List.hd (List.tl e1))
-      | _ -> raise Type_infer_invalid )
-  | Local (d1, d2) -> type_infer_list (type_infer_list g d1 @ g) d2
-	(* | Simple (e1, e2) -> [(e1, type_infer g e2)] *) *)
 
 (* --------------------------------------------------------------------------------- *)
 
@@ -159,13 +111,14 @@ and type_infer_list g d =
 and hastype g e t =
   try
     match e with
-    | N number -> Tint = t
-    | B value -> Tbool = t
-    | Var var_name -> (
+    | Integer number -> Tint = t
+    | Bool value -> Tbool = t
+    | V var_name -> (
       try find_variable var_name g = t with Variable_not_found -> false )
-    | Conjunction (e1, e2) ->
+		| Cmp e -> if hastype g e Tint then Tbool = t else false
+		| And (e1, e2) ->
         if hastype g e1 Tbool && hastype g e2 Tbool then Tbool = t else false
-    | Disjunction (e1, e2) ->
+    | Or (e1, e2) ->
         if hastype g e1 Tbool && hastype g e2 Tbool then Tbool = t else false
     | Equals (e1, e2) ->
         if hastype g e1 Tint && hastype g e2 Tint then Tbool = t else false
@@ -178,7 +131,7 @@ and hastype g e t =
     | LessT (e1, e2) ->
         if hastype g e1 Tint && hastype g e2 Tint then Tbool = t else false
     | InParen e1 -> hastype g e1 t
-    | IfThenElse (e1, e2, e3) ->
+    | If_Then_Else (e1, e2, e3) ->
         if hastype g e1 Tbool then hastype g e2 t && hastype g e3 t else false
     | Tuple (e1, e2) ->
         if List.length e2 = e1 then
@@ -199,7 +152,7 @@ and hastype g e t =
               else false
           | _ -> false
         else false
-    | Add (e1, e2) ->
+    | Plus (e1, e2) ->
         if hastype g e1 Tint && hastype g e2 Tint then t = Tint else false
     | Sub (e1, e2) ->
         if hastype g e1 Tint && hastype g e2 Tint then t = Tint else false
@@ -212,13 +165,17 @@ and hastype g e t =
     | Negative e1 -> if hastype g e1 Tint then t = Tint else false
     | Not e1 -> if hastype g e1 Tbool then t = Tbool else false
     | Abs e1 -> if hastype g e1 Tint then t = Tint else false
-    | Let (d, e) -> hastype (type_infer_list g d @ g) e t
-    | FunctionAbstraction (str, exp, type_explicit) -> (
+    | Lambda (str, exp, type_explicit) -> (
       match t with
       | Tfunc (t1, t2) ->
           if type_explicit = t1 then hastype ((str, t1) :: g) exp t2 else false
       | _ -> false )
-    | FunctionCall (e1, e2) -> (
+		| RecursiveLambda (f_name, param, f_body, param_type, func_type) -> (
+			match t with
+			| Tfunc (t1, t2) ->
+					if param_type = t1 && func_type = t2 then hastype ((param, t1) :: (f_name, t2) :: g) f_body t2 else false
+			| _ -> false )
+    | App (e1, e2) -> (
       match type_infer g e1 with
       | Tfunc (tau1, tau2) ->
           if type_infer g e2 = tau1 then tau2 = t else false
@@ -232,31 +189,3 @@ and match_list_of_types g e t =
     | a :: b, c :: d ->
         if hastype g a c then match_list_of_types g b d else false
   else false
-
-(* yields : ((string * exptype) list) -> definition -> ((string * exptype) list) -> bool *)
-and yields g d g_dash =
-  try
-    match d with
-    | Simple (e1, e2, type_explicit) ->
-        if
-          e1 = get_tup_1 (List.hd g_dash)
-          && List.length g_dash = 1
-          && type_explicit = get_tup_2 (List.hd g_dash)
-        then hastype g e2 type_explicit
-        else false
-    | Sequence e1 ->
-        let e = List.hd e1 in
-        let e_dash = List.hd g_dash in
-        if yields g e [e_dash] then
-          yields (e_dash :: g) (List.hd (List.tl e1)) (List.tl g_dash)
-        else false
-    | Parallel e1 ->
-        if check_list_overlap e1 then false
-        else
-          let e = List.hd e1 in
-          let e_dash = List.hd g_dash in
-          if yields g e [e_dash] then
-            yields g (List.hd (List.tl e1)) (List.tl g_dash)
-          else false
-    | Local (d1, d2) -> yields (type_infer_list g d1 @ g) d2 g_dash
-  with _ -> false

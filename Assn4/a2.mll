@@ -1,5 +1,4 @@
 (*
-  Below is a dummy implementation. Please note the following
   - Tokens are defined in A3.mly
   - Return type is token and not token list
   - End of buffer is indicated by EOF token below
@@ -22,7 +21,7 @@
    let nz_digit = ['1'-'9']
    let digit = ['0'-'9']
    let integer_constant ='0'|nz_digit digit*
-   let identifiers = ['A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9']*
+   let identifiers = ['A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_' ''']*
    let whitespace = ' '|'\n'|'\r'|'\t'
    (* let trailing_zero_error = ['+' '-']? ('0')(('0')+)|['+' '-']? nz_digit digit*
    let beginning_char_error = ['T'|'F'] identifiers *)
@@ -54,8 +53,21 @@
    |    "else"                  {ELSE}
    |    "fi"                    {FI}
    |    "proj"                  {PROJ}
+   |		"let"										{LET}
+	 |		"in"										{IN}
+   |		"end"										{END}
+   |		"\\"										{BACKSLASH}
+   |		'.'											{DOT}
+   |		"def"										{DEF}
+   |    ';'                     {SEMICOLON}
+	 |		':'											{COLON}
+	 |		"Tint"									{TINT}
+	 |		"Tbool"									{TBOOL}
+	 |		"Tunit"									{TUNIT}
+	 |		"->"										{ARROW}
+   |		"||"										{PARALLEL}
+   |		"local"									{LOCAL}
    |    identifiers as x        {ID (x)}
-   |    ';'                     {DELIMITER}
    |    eof                     {EOF}
    |    whitespace              {read lexbuf}
    |    _                       {raise (InvalidToken ("Unexpected character: "^Lexing.lexeme lexbuf))}
