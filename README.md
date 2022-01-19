@@ -8,7 +8,7 @@ A tiny functional language built as part of the COL226 Programming Languages cou
     - Defines a BIGINT package in OCaml for implementing arithmetic for arbitrarily large numbers, using lists of digits to represent an arbitrarily large number.
 
 - *[Assignment 1](Assn1/README.md) - A simple definitional interpreter and a stack machine*
-    - Models the "abstract syntax" of a simple calculator language for BIGINT expressions, and gives it "semantic meaning" in terms of OCaml's built-in types.
+    - Models the "abstract syntax" of a simple calculator language and gives it "semantic meaning" in terms of OCaml's built-in types.
     - Implements a simple stack-based machine which accepts opcodes in Reverse Polish Notation (RPN) as input and evaluates them.	
     - Implements a compiler to translate abstract syntax of an expression in the calculator language to opcodes in RPN that the stack-based machine can accept by doing post-order traversal of the expression's AST.
 
