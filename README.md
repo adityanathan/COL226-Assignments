@@ -16,7 +16,7 @@ A tiny functional language built as part of the COL226 Programming Languages cou
     - Extends the language with boolean values, if-then-else and variable bindings and implements a lexer for the language.
 
 - *[Assignment 3](Assn3/a3.mly) - Building a parser using ocamlyacc*
-    - Implements a grammar for the language using ocamlyacc.
+    - Implements a parser for the language using ocamlyacc.
 
 - *[Assignment 4](Assn4/README.md) - Type Checker*
     - Extends the language with tuples, definitions and function abstractions and implements a type checker for this language.
