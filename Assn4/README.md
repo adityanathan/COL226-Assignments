@@ -35,7 +35,6 @@ type exptype =
 ```
 
 As for the *type-checker* for the language, we define two functions `hastype` and `yields`,
-
 - `hastype` represents the association `G |- e : t`. The function `hastype` takes a set of type assumptions `G` (represented as a list of tuples of the form (variable name, type)), an expression `e`, and an expression type `t`, and decides if the expression `e` has the claimed type `t` under the given type assumptions `G`.
 
 ```ocaml

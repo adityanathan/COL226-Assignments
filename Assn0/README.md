@@ -8,7 +8,7 @@
     
         ocamlc signature_a0.mli
     
-  This creates a .cmi files
+  This creates a .cmi file
 
 - Use the top level to execute functions
     
