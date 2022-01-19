@@ -1,4 +1,4 @@
-# COL226-Assignments
+# Prototype Functional Language
 
 A tiny functional language built as part of the COL226 Programming Languages course taught by [Prof. Sanjiva Prasad](https://www.cse.iitd.ernet.in/~sanjiva/) at IIT Delhi in 2019
 
